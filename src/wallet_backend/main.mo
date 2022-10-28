@@ -193,16 +193,28 @@ actor class Wallet(_owner: Principal) = this{
   };
 
   private func _removeMember(member : Member) {
+    let totalPower:Nat = _getTotalPower() - member.power;
+    assert(totalPower >= threshold);
     let _member = Principal.fromText(member.principal);
      members.delete(_member);
   };
 
   private func _setThreshold(_threshold : Threshold) {
+    let totalPower:Nat = _getTotalPower();
+    assert(totalPower >= _threshold.power);
     threshold := _threshold.power;
   };
 
   private func _transfer(transfer : Transfer): async TokenService.TxReceipt {
     await TokenService.transfer(transfer.recipient,transfer.amount);
+  };
+
+  private func _getTotalPower():Nat {
+    var power:Nat = 0;
+    for((principal,_power) in members.entries()){
+      power := power + _power;
+    };
+    power;
   };
 
   private func _approveRequest(request:Request,principal:Text,power:Nat): Request{
