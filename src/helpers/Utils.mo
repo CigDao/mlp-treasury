@@ -13,7 +13,9 @@ import Int "mo:base/Int";
 import Int32 "mo:base/Int32";
 import Nat32 "mo:base/Nat32";
 import JSON "JSON";
-import Request "../wallet/models/Request";
+import Request "../treasury/models/Request";
+import Proposal "../dao/models/Proposal";
+import Vote "../dao/models/Vote";
 import SHA256 "mo:crypto/SHA/SHA256";
 import Blob "mo:base/Blob";
 import Hex "mo:encoding/Hex";
@@ -24,6 +26,8 @@ module {
     private type JSON = JSON.JSON;
     private type Request = Request.Request;
     private type Transfer = Request.Transfer;
+    private type Proposal = Proposal.Proposal;
+    private type Vote = Vote.Vote;
     private type Member = Request.Member;
     private type Threshold = Request.Threshold;
 
@@ -153,6 +157,75 @@ module {
         map.put("createdAt", #Number(value.createdAt));
         map.put("description", #String(value.description));
 
+        #Object(map);
+    };
+
+    public func _voteToJson(value: Vote): JSON {
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
+        map.put("proposalId", #Number(Nat32.toNat(value.proposalId)));
+        map.put("yay", #Boolean(value.yay));
+        map.put("member", #String(value.member));
+        map.put("power", #Number(value.power));
+        map.put("timeStamp", #Number(value.timeStamp));
+
+        #Object(map);
+        
+    };
+
+    public func _proposalToJson(value: Proposal): JSON {
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
+
+        switch(value){
+            case(#upgrade(value)){
+
+                let executedAt = value.executedAt;
+                switch(executedAt){
+                    case(?executedAt){
+                        map.put("executedAt", #Number(executedAt));
+                    };
+                    case(null) {
+
+                    };
+                };
+
+                map.put("creator", #String(value.creator));
+                map.put("title", #String(value.title));
+                map.put("description", #String(value.description));
+                map.put("source", #String(value.source));
+                map.put("hash", #String(value.hash));
+                map.put("yay", #Number(value.yay));
+                map.put("nay", #Number(value.nay));
+                map.put("executed", #Boolean(value.executed));
+            };
+            case(#treasury(value)){
+
+                let executedAt = value.executedAt;
+                switch(executedAt){
+                    case(?executedAt){
+                        map.put("executedAt", #Number(executedAt));
+                    };
+                    case(null) {
+
+                    };
+                };
+
+                map.put("creator", #String(value.creator));
+                map.put("title", #String(value.title));
+                map.put("description", #String(value.description));
+                map.put("vote", #Boolean(value.vote));
+                map.put("yay", #Number(value.yay));
+                map.put("nay", #Number(value.nay));
+                map.put("executed", #Boolean(value.executed));
+            };
+        };
         #Object(map);
     };
 

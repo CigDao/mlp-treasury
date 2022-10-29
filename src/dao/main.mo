@@ -29,21 +29,26 @@ actor class Dao() = this {
 
   private type ErrorMessage = { #message : Text;};
   private type Proposal = Proposal.Proposal;
+  private type ProposalRequest = Proposal.ProposalRequest;
   private type Vote = Vote.Vote;
   private type JSON = JSON.JSON;
   private type ApiError = Response.ApiError;
 
+  private stable var proposalVoteEntries : [(Nat32,[Vote])] = [];
+  private var proposalVotes = HashMap.fromIter<Nat32,[Vote]>(proposalVoteEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
   private stable var proposalEntries : [(Nat32,Proposal)] = [];
   private var proposals = HashMap.fromIter<Nat32,Proposal>(proposalEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
   private stable var voteEntries : [(Nat32,Vote)] = [];
   private var votes = HashMap.fromIter<Nat32,Vote>(voteEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
 
   system func preupgrade() {
+    proposalVoteEntries := Iter.toArray(proposalVotes.entries());
     voteEntries := Iter.toArray(votes.entries());
     proposalEntries := Iter.toArray(proposals.entries());
   };
 
   system func postupgrade() {
+    proposalVoteEntries := [];
     voteEntries := [];
     proposalEntries := [];
   };
@@ -76,42 +81,84 @@ actor class Dao() = this {
       Cycles.balance();
   };
 
-  public shared({caller}) func createProposal(proposal:Proposal): async TokenService.TxReceipt {
+  public shared({caller}) func createProposal(request:ProposalRequest): async TokenService.TxReceipt {
     //verify the amount of tokens is approved
     let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
-    assert(Constants.proposalCost <= allowance);
+    if(Constants.proposalCost > allowance){
+      return #Err(#InsufficientAllowance);
+    };
     //verify hash if upgrading wasm
-    switch(proposal){
+    switch(request){
       case(#upgrade(value)){
         let hash = Utils._hash(value.wasm);
         if(hash != value.hash){
           return #Err(#Other("Invalid wasm. Wasm hash does not match source"));
         };
+
+        let upgrade = {
+          creator = Principal.toText(caller);
+          wasm = value.wasm;
+          args = value.args;
+          title = value.title;
+          description = value.description;
+          source = value.source;
+          hash = value.hash;
+          yay = 0;
+          nay = 0;
+          executed = false;
+          executedAt = null;
+        };
+
+        //tax tokens
+        let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+        switch(receipt){
+          case(#Ok(value)){
+            //create proposal
+            let currentId = proposalId;
+            proposalId := proposalId+1;
+            proposals.put(currentId,#upgrade(upgrade));
+            #Ok(Nat32.toNat(currentId));
+          };
+          case(#Err(value)){
+            #Err(value);
+          };
+        }
       };
       case(#treasury(value)){
+        let treasury = {
+          creator = Principal.toText(caller);
+          vote = value.vote;
+          title = value.title;
+          description = value.description;
+          yay = 0;
+          nay = 0;
+          executed = false;
+          executedAt = null;
+        };
 
+        let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+        switch(receipt){
+          case(#Ok(value)){
+            //create proposal
+            let currentId = proposalId;
+            proposalId := proposalId+1;
+            proposals.put(currentId,#treasury(treasury));
+            #Ok(Nat32.toNat(currentId));
+          };
+          case(#Err(value)){
+            #Err(value);
+          };
+        }
       }
     };
-    //tax tokens
-    let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
-    switch(receipt){
-      case(#Ok(value)){
-        //create proposal
-        let currentId = proposalId;
-        proposalId := proposalId+1;
-        proposals.put(currentId,proposal);
-        #Ok(Nat32.toNat(currentId));
-      };
-      case(#Err(value)){
-        #Err(value);
-      };
-    }
   };
 
   public shared({caller}) func vote(proposalId:Nat32, power:Nat, yay:Bool): async TokenService.TxReceipt {
     //verify the amount of tokens is approved
     let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
-    assert(power <= allowance);
+    if(power > allowance){
+      return #Err(#InsufficientAllowance);
+    };
     //tax tokens
     let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
     switch(receipt){
@@ -128,6 +175,7 @@ actor class Dao() = this {
         voteId := voteId+1;
         votes.put(voteId,vote);
         _vote(proposalId, power, yay);
+        _addVoteToProposal(proposalId, vote);
         #Ok(Nat32.toNat(currentId));
       };
       case(#Err(value)){
@@ -153,6 +201,8 @@ actor class Dao() = this {
                 hash = value.hash;
                 yay = value.yay + power;
                 nay = value.nay;
+                executed = value.executed;
+                executedAt = value.executedAt;
               };
               proposals.put(proposalId,#upgrade(proposal));
             }else {
@@ -166,6 +216,8 @@ actor class Dao() = this {
                 hash = value.hash;
                 yay = value.yay;
                 nay = value.nay + power;
+                executed = value.executed;
+                executedAt = value.executedAt;
               };
               proposals.put(proposalId,#upgrade(proposal));
             }
@@ -179,6 +231,8 @@ actor class Dao() = this {
                 description = value.description;
                 yay = value.yay + power;
                 nay = value.nay;
+                executed = value.executed;
+                executedAt = value.executedAt;
               };
               proposals.put(proposalId,#treasury(proposal));
             }else {
@@ -189,6 +243,8 @@ actor class Dao() = this {
                 description = value.description;
                 yay = value.yay;
                 nay = value.nay + power;
+                executed = value.executed;
+                executedAt = value.executedAt;
               };
               proposals.put(proposalId,#treasury(proposal));
             }
@@ -202,6 +258,19 @@ actor class Dao() = this {
 
   };
 
+  private func _addVoteToProposal(proposalId:Nat32, vote:Vote) {
+    let exist = proposalVotes.get(proposalId);
+    switch(exist){
+      case(?exist){
+        let votes = Array.append(exist,[vote]);
+        proposalVotes.put(proposalId,votes);
+      };
+      case(null){
+        proposalVotes.put(proposalId,[vote]);
+      }
+    };
+  };
+
   /*private func _transfer(transfer : Transfer): async TokenService.TxReceipt {
     await TokenService.transfer(transfer.recipient,transfer.amount);
   };*/
@@ -212,7 +281,7 @@ actor class Dao() = this {
         if (path.size() == 1) {
             let value = path[1];
             switch (path[0]) {
-                //case ("fetchRequests") return _fetchRequestsResponse();
+                case ("fetchProposals") return _fetchProposalResponse();
                 case ("getMemorySize") return _natResponse(_getMemorySize());
                 case ("getHeapSize") return _natResponse(_getHeapSize());
                 case ("getCycles") return _natResponse(_getCycles());
@@ -220,7 +289,9 @@ actor class Dao() = this {
             };
         } else if (path.size() == 2) {
             switch (path[0]) {
-                //case ("getRequest") return _requestResponse(path[1]);
+                case ("fetchVotes") return _fetchVoteResponse(path[1]);
+                case ("getProposal") return _proposalResponse(path[1]);
+                case ("getVote") return _voteResponse(path[1]);
                 case (_) return return Http.BAD_REQUEST();
             };
         }else {
@@ -239,20 +310,33 @@ actor class Dao() = this {
         };
     };
 
-    /*private func _fetchRequests(): [Request] {
-      var results:[Request] = [];
-      for ((id,request) in requests.entries()) {
+    private func _fetchProposal(): [Proposal] {
+      var results:[Proposal] = [];
+      for ((id,request) in proposals.entries()) {
         results := Array.append(results,[request]);
       };
       results;
     };
 
-    private func _fetchRequestsResponse() : Http.Response {
-      let requests =  _fetchRequests();
+    private func _fetchVotes(proposalId:Nat32): [Vote] {
+      var results:[Vote] = [];
+      let exist = proposalVotes.get(proposalId);
+      switch(exist){
+        case(?exist){
+          exist;
+        };
+        case(null){
+          [];
+        }
+      };
+    };
+
+    private func _fetchProposalResponse() : Http.Response {
+      let _proposals =  _fetchProposal();
       var result:[JSON] = [];
 
-      for(request in requests.vals()) {
-        let json = Utils.requestToJson(request);
+      for(proposal in _proposals.vals()) {
+        let json = Utils._proposalToJson(proposal);
         result := Array.append(result,[json]);
       };
 
@@ -266,12 +350,32 @@ actor class Dao() = this {
       };
     };
 
-    private func _requestResponse(value : Text) : Http.Response {
+    private func _fetchVoteResponse(value:Text) : Http.Response {
       let id = Utils.textToNat32(value);
-      let exist = requests.get(id);
+      let _votes =  _fetchVotes(id);
+      var result:[JSON] = [];
+
+      for(obj in _votes.vals()) {
+        let json = Utils._voteToJson(obj);
+        result := Array.append(result,[json]);
+      };
+
+      let json = #Array(result);
+      let blob = Text.encodeUtf8(JSON.show(json));
+      let response : Http.Response = {
+          status_code = 200;
+          headers = [("Content-Type", "application/json")];
+          body = blob;
+          streaming_strategy = null;
+      };
+    };
+
+    private func _proposalResponse(value : Text) : Http.Response {
+      let id = Utils.textToNat32(value);
+      let exist = proposals.get(id);
       switch(exist){
         case(?exist){
-          let json = Utils.requestToJson(exist);
+          let json = Utils._proposalToJson(exist);
           let blob = Text.encodeUtf8(JSON.show(json));
           let response : Http.Response = {
               status_code = 200;
@@ -284,6 +388,26 @@ actor class Dao() = this {
           return Http.NOT_FOUND();
         };
       };
-    };*/
+    };
+
+    private func _voteResponse(value : Text) : Http.Response {
+      let id = Utils.textToNat32(value);
+      let exist = votes.get(id);
+      switch(exist){
+        case(?exist){
+          let json = Utils._voteToJson(exist);
+          let blob = Text.encodeUtf8(JSON.show(json));
+          let response : Http.Response = {
+              status_code = 200;
+              headers = [("Content-Type", "application/json")];
+              body = blob;
+              streaming_strategy = null;
+          };
+        };
+        case(null){
+          return Http.NOT_FOUND();
+        };
+      };
+    };
 
 };

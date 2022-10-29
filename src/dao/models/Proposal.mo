@@ -1,9 +1,15 @@
 import Blob "mo:base/Blob";
+import Time "mo:base/Time";
 
 module {
     public type Proposal = {
         #upgrade:Upgrade;
         #treasury:Treasury;
+    };
+
+    public type ProposalRequest = {
+        #upgrade:UpgradeRequest;
+        #treasury:TreasuryRequest;
     };
 
     public type Upgrade = {
@@ -16,8 +22,23 @@ module {
         hash:Text;
         yay:Nat;
         nay:Nat;
+        executed:Bool;
+        executedAt:?Time.Time;
+    };
+    public type UpgradeRequest = {
+        wasm:Blob;
+        args:Blob;
+        title:Text;
+        description:Text;
+        source:Text;
+        hash:Text;
     };
 
+    public type TreasuryRequest = {
+        vote:Bool;
+        title:Text;
+        description:Text;
+    };
     public type Treasury = {
         creator:Text;
         vote:Bool;
@@ -25,5 +46,7 @@ module {
         description:Text;
         yay:Nat;
         nay:Nat;
+        executed:Bool;
+        executedAt:?Time.Time;
     };
 }
