@@ -4,18 +4,9 @@
       "main": "src/dao/main.mo",
       "type": "motoko"
     },
-    "wallet_frontend": {
-      "dependencies": [
-        "wallet_backend"
-      ],
-      "frontend": {
-        "entrypoint": "src/wallet_frontend/src/index.html"
-      },
-      "source": [
-        "src/wallet_frontend/assets",
-        "dist/wallet_frontend/"
-      ],
-      "type": "assets"
+    "treasury": {
+      "main": "src/treasury/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {

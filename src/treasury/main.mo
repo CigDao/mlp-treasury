@@ -18,7 +18,7 @@ import Result "mo:base/Result";
 import Error "mo:base/Error";
 import TokenService "../services/TokenService";
 
-actor class Wallet(_owner: Principal) = this{
+actor class Treasury(_owner: Principal) = this{
 
   stable var requestId:Nat32 = 1;
   stable var threshold:Nat = 1;
