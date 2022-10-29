@@ -89,24 +89,10 @@ actor class Dao() = this {
     };
     //verify hash if upgrading wasm
     switch(request){
-      case(#upgrade(value)){
-        let hash = Utils._hash(value.wasm);
-        if(hash != value.hash){
+      case(#upgrade(obj)){
+        let hash = Utils._hash(obj.wasm);
+        if(hash != obj.hash){
           return #Err(#Other("Invalid wasm. Wasm hash does not match source"));
-        };
-
-        let upgrade = {
-          creator = Principal.toText(caller);
-          wasm = value.wasm;
-          args = value.args;
-          title = value.title;
-          description = value.description;
-          source = value.source;
-          hash = value.hash;
-          yay = 0;
-          nay = 0;
-          executed = false;
-          executedAt = null;
         };
 
         //tax tokens
@@ -116,6 +102,20 @@ actor class Dao() = this {
             //create proposal
             let currentId = proposalId;
             proposalId := proposalId+1;
+            let upgrade = {
+              id = currentId;
+              creator = Principal.toText(caller);
+              wasm = obj.wasm;
+              args = obj.args;
+              title = obj.title;
+              description = obj.description;
+              source = obj.source;
+              hash = obj.hash;
+              yay = 0;
+              nay = 0;
+              executed = false;
+              executedAt = null;
+            };
             proposals.put(currentId,#upgrade(upgrade));
             #Ok(Nat32.toNat(currentId));
           };
@@ -124,24 +124,24 @@ actor class Dao() = this {
           };
         }
       };
-      case(#treasury(value)){
-        let treasury = {
-          creator = Principal.toText(caller);
-          vote = value.vote;
-          title = value.title;
-          description = value.description;
-          yay = 0;
-          nay = 0;
-          executed = false;
-          executedAt = null;
-        };
-
+      case(#treasury(obj)){
         let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
         switch(receipt){
           case(#Ok(value)){
             //create proposal
             let currentId = proposalId;
             proposalId := proposalId+1;
+            let treasury = {
+              id = currentId;
+              creator = Principal.toText(caller);
+              vote = obj.vote;
+              title = obj.title;
+              description = obj.description;
+              yay = 0;
+              nay = 0;
+              executed = false;
+              executedAt = null;
+            };
             proposals.put(currentId,#treasury(treasury));
             #Ok(Nat32.toNat(currentId));
           };
@@ -192,6 +192,7 @@ actor class Dao() = this {
           case(#upgrade(value)){
             if(yay){
               var proposal = {
+                id = value.id;
                 creator = value.creator;
                 wasm = value.wasm;
                 args = value.args;
@@ -207,6 +208,7 @@ actor class Dao() = this {
               proposals.put(proposalId,#upgrade(proposal));
             }else {
               var proposal = {
+                id = value.id;
                 creator = value.creator;
                 wasm = value.wasm;
                 args = value.args;
@@ -225,6 +227,7 @@ actor class Dao() = this {
           case(#treasury(value)){
             if(yay){
               var proposal = {
+                id = value.id;
                 creator = value.creator;
                 vote = value.vote;
                 title = value.title;
@@ -237,6 +240,7 @@ actor class Dao() = this {
               proposals.put(proposalId,#treasury(proposal));
             }else {
               var proposal = {
+                id = value.id;
                 creator = value.creator;
                 vote = value.vote;
                 title = value.title;
@@ -279,7 +283,6 @@ actor class Dao() = this {
         let path = Iter.toArray(Text.tokens(request.url, #text("/")));
 
         if (path.size() == 1) {
-            let value = path[1];
             switch (path[0]) {
                 case ("fetchProposals") return _fetchProposalResponse();
                 case ("getMemorySize") return _natResponse(_getMemorySize());
@@ -310,7 +313,7 @@ actor class Dao() = this {
         };
     };
 
-    private func _fetchProposal(): [Proposal] {
+    private func _fetchProposals(): [Proposal] {
       var results:[Proposal] = [];
       for ((id,request) in proposals.entries()) {
         results := Array.append(results,[request]);
@@ -332,7 +335,7 @@ actor class Dao() = this {
     };
 
     private func _fetchProposalResponse() : Http.Response {
-      let _proposals =  _fetchProposal();
+      let _proposals =  _fetchProposals();
       var result:[JSON] = [];
 
       for(proposal in _proposals.vals()) {

@@ -195,7 +195,7 @@ module {
 
                     };
                 };
-
+                map.put("id", #Number(Nat32.toNat(value.id)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));
                 map.put("description", #String(value.description));
@@ -216,7 +216,7 @@ module {
 
                     };
                 };
-
+                map.put("id", #Number(Nat32.toNat(value.id)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));
                 map.put("description", #String(value.description));

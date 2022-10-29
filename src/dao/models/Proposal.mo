@@ -13,6 +13,7 @@ module {
     };
 
     public type Upgrade = {
+        id:Nat32;
         creator:Text;
         wasm:Blob;
         args:Blob;
@@ -40,6 +41,7 @@ module {
         description:Text;
     };
     public type Treasury = {
+        id:Nat32;
         creator:Text;
         vote:Bool;
         title:Text;
