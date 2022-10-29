@@ -1,7 +1,7 @@
 {
   "canisters": {
-    "wallet_backend": {
-      "main": "src/wallet_backend/main.mo",
+    "dao": {
+      "main": "src/dao/main.mo",
       "type": "motoko"
     },
     "wallet_frontend": {
@@ -21,7 +21,7 @@
   "defaults": {
     "build": {
       "args": "",
-      "packtool": ""
+      "packtool": "vessel sources"
     }
   },
   "dfx": "0.11.1",
