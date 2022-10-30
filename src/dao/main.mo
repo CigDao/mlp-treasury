@@ -30,7 +30,7 @@ actor class Dao() = this {
   stable var voteId:Nat32 = 1;
   stable var totalTokensSpent:Nat = 0;
   private let executionTime:Int = 86400000000000 * 3;
-  var proposal:?Proposal = null;
+  stable var proposal:?Proposal = null;
 
   private type ErrorMessage = { #message : Text;};
   private type Proposal = Proposal.Proposal;
@@ -386,6 +386,7 @@ actor class Dao() = this {
 
         if (path.size() == 1) {
             switch (path[0]) {
+              case ("getProposal") return _proposalResponse();
                 case ("fetchAcceptedProposals") return _fetchAcceptedProposalResponse();
                 case ("fetchRejectedProposals") return _fetchRejectedProposalResponse();
                 case ("getMemorySize") return _natResponse(_getMemorySize());
@@ -396,7 +397,6 @@ actor class Dao() = this {
         } else if (path.size() == 2) {
             switch (path[0]) {
                 case ("fetchVotes") return _fetchVoteResponse(path[1]);
-                case ("getProposal") return _proposalResponse(path[1]);
                 case ("getVote") return _voteResponse(path[1]);
                 case (_) return return Http.BAD_REQUEST();
             };
@@ -503,8 +503,7 @@ actor class Dao() = this {
       };
     };
 
-    private func _proposalResponse(value : Text) : Http.Response {
-      let id = Utils.textToNat32(value);
+    private func _proposalResponse() : Http.Response {
       let exist = proposal;
       switch(exist){
         case(?exist){

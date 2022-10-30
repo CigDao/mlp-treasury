@@ -21,16 +21,18 @@ actor class Controller() = this {
         };
     };*/
 
-    system func heartbeat() : async () {
+    /*system func heartbeat() : async () {
         let now = Time.now();
         let timespan = now - lastCheck;
         if(timespan > min){
             lastCheck := now;
             ignore DaoService.executeProposal();
         };
-    };
+    };*/
     
     public shared({caller}) func upgradeDao(wasm:Blob,arg:Blob): async () {
+        let controller = Principal.fromText(Constants.controllerCanister);
+        assert(caller == controller);
         let canisterId = Principal.fromText(Constants.daoCanister);
         await CansiterService.CanisterUtils().installCode(canisterId, arg, wasm);
     };

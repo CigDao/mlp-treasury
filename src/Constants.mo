@@ -3,6 +3,6 @@ module {
     public let daoCanister = "7tac7-rqaaa-aaaak-ac47q-cai";
     public let treasuryCanister = "unwqb-kyaaa-aaaak-ac5aa-cai";
     public let controllerCanister = "hssiu-rqaaa-aaaap-aanwq-cai";
-    public let proposalCost:Nat = 0;
+    public let proposalCost:Nat = 100000000000;
 
 }

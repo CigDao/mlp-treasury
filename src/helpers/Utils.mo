@@ -150,6 +150,7 @@ module {
             };
         };
 
+        map.put("id", #Number(Nat32.toNat(value.id)));
         map.put("amount", #Number(value.amount));
         map.put("recipient", #String(value.recipient));
         map.put("approvals", #Array(approvals));
@@ -218,6 +219,7 @@ module {
                     };
                 };
                 map.put("id", #Number(Nat32.toNat(value.id)));
+                map.put("treasuryRequestId", #Number(Nat32.toNat(value.treasuryRequestId)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));
                 map.put("description", #String(value.description));
@@ -249,6 +251,7 @@ module {
             };
         };
 
+        map.put("id", #Number(Nat32.toNat(value.id)));
         map.put("principal", #String(value.principal));
         map.put("power", #Number(value.power));
         map.put("description", #String(value.description));
@@ -277,6 +280,7 @@ module {
             };
         };
 
+        map.put("id", #Number(Nat32.toNat(value.id)));
         map.put("power", #Number(value.power));
         map.put("description", #String(value.description));
         map.put("approvals", #Array(approvals));

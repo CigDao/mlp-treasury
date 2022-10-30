@@ -76,20 +76,21 @@ actor class Treasury() = this{
 
   public shared({caller}) func createRequest(request : RequestDraft) : async Nat32 {
     let isMember = _isMember(caller);
-    assert(isMember.value);
+    //assert(isMember.value);
     var currentId = requestId;
     requestId := requestId + 1;
-    let _request = _createRequest(request, caller, isMember.power);
+    let _request = _createRequest(currentId, request, caller, isMember.power);
     requests.put(currentId,_request);
     currentId;
   };
 
-  private func _createRequest(request : RequestDraft, caller:Principal, power:Nat) : Request {
+  private func _createRequest(id:Nat32, request : RequestDraft, caller:Principal, power:Nat) : Request {
     let approvals:TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text,Nat>(Text.equal, Text.hash);
     approvals.put(Principal.toText(caller),power);
     switch(request){
       case(#transfer(value)){
           let result = {
+            id = id;
             amount = value.amount;
             recipient = value.recipient;
             approvals = approvals;
@@ -102,6 +103,7 @@ actor class Treasury() = this{
       };
       case(#addMember(value)){
           let result = {
+            id = id;
             principal = value.principal;
             power = value.power;
             description = value.description;
@@ -114,6 +116,7 @@ actor class Treasury() = this{
       };
       case(#removeMember(value)){
           let result = {
+            id = id;
             principal = value.principal;
             power = value.power;
             description = value.description;
@@ -126,6 +129,7 @@ actor class Treasury() = this{
       };
       case(#threshold(value)){
          let result = {
+            id = id;
             power = value.power;
             description = value.description;
             approvals = approvals;
@@ -311,7 +315,6 @@ actor class Treasury() = this{
         let path = Iter.toArray(Text.tokens(request.url, #text("/")));
 
         if (path.size() == 1) {
-            let value = path[1];
             switch (path[0]) {
                 case ("fetchRequests") return _fetchRequestsResponse();
                 case ("getMemorySize") return _natResponse(_getMemorySize());

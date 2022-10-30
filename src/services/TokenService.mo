@@ -41,6 +41,6 @@ module {
         allowance : shared query (Principal, Principal) -> async Nat;
         transfer: (Principal, Nat)  -> async TxReceipt;
         transferFrom : shared (Principal, Principal, Nat) -> async TxReceipt;
-        chargeTax : shared (Principal, Nat) -> async TxReceipt;
+        chargeTax : shared (Principal, Nat) -> async (TxReceipt);
     };
 }

@@ -11,6 +11,7 @@ module {
     };
 
     public type Transfer = {
+        id:Nat32;
         amount:Nat;
         recipient:Text;
         approvals:TrieMap.TrieMap<Text, Nat>;
@@ -20,6 +21,7 @@ module {
         description:Text;
     };
     public type Member = {
+        id:Nat32;
         principal:Text;
         power:Nat;
         description:Text;
@@ -29,6 +31,7 @@ module {
         executedAt:?Time.Time;
     };
     public type Threshold = {
+        id:Nat32;
         power:Nat;
         description:Text;
         approvals:TrieMap.TrieMap<Text, Nat>;
@@ -47,9 +50,6 @@ module {
     public type TransferDraft = {
         amount:Nat;
         recipient:Text;
-        executed:Bool;
-        createdAt:Time.Time;
-        executedAt:?Time.Time;
         description:Text;
     };
     public type MemberDraft = {
