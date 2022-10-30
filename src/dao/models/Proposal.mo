@@ -25,6 +25,7 @@ module {
         nay:Nat;
         executed:Bool;
         executedAt:?Time.Time;
+        timeStamp:Time.Time;
     };
     public type UpgradeRequest = {
         wasm:Blob;
@@ -50,5 +51,6 @@ module {
         nay:Nat;
         executed:Bool;
         executedAt:?Time.Time;
+        timeStamp:Time.Time;
     };
 }

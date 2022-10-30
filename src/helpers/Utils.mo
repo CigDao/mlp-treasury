@@ -204,6 +204,7 @@ module {
                 map.put("yay", #Number(value.yay));
                 map.put("nay", #Number(value.nay));
                 map.put("executed", #Boolean(value.executed));
+                map.put("timeStamp", #Number(value.timeStamp))
             };
             case(#treasury(value)){
 
@@ -224,6 +225,7 @@ module {
                 map.put("yay", #Number(value.yay));
                 map.put("nay", #Number(value.nay));
                 map.put("executed", #Boolean(value.executed));
+                map.put("timeStamp", #Number(value.timeStamp))
             };
         };
         #Object(map);

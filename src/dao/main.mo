@@ -20,12 +20,14 @@ import Cycles "mo:base/ExperimentalCycles";
 import Result "mo:base/Result";
 import Error "mo:base/Error";
 import TokenService "../services/TokenService";
+import CansiterService "../services/CansiterService";
 
 actor class Dao() = this {
 
   stable var proposalId:Nat32 = 1;
   stable var voteId:Nat32 = 1;
   stable var totalTokensSpent:Nat = 0;
+  private let executionTime:Int = 86400000000000 * 3;
 
   private type ErrorMessage = { #message : Text;};
   private type Proposal = Proposal.Proposal;
@@ -36,8 +38,16 @@ actor class Dao() = this {
 
   private stable var proposalVoteEntries : [(Nat32,[Vote])] = [];
   private var proposalVotes = HashMap.fromIter<Nat32,[Vote]>(proposalVoteEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
+
   private stable var proposalEntries : [(Nat32,Proposal)] = [];
   private var proposals = HashMap.fromIter<Nat32,Proposal>(proposalEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
+
+  private stable var rejectedEntries : [(Nat32,Proposal)] = [];
+  private var rejected = HashMap.fromIter<Nat32,Proposal>(rejectedEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
+
+  private stable var acceptedEntries : [(Nat32,Proposal)] = [];
+  private var accepted = HashMap.fromIter<Nat32,Proposal>(acceptedEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
+
   private stable var voteEntries : [(Nat32,Vote)] = [];
   private var votes = HashMap.fromIter<Nat32,Vote>(voteEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
 
@@ -45,12 +55,16 @@ actor class Dao() = this {
     proposalVoteEntries := Iter.toArray(proposalVotes.entries());
     voteEntries := Iter.toArray(votes.entries());
     proposalEntries := Iter.toArray(proposals.entries());
+    rejectedEntries := Iter.toArray(rejected.entries());
+    acceptedEntries := Iter.toArray(accepted.entries());
   };
 
   system func postupgrade() {
     proposalVoteEntries := [];
     voteEntries := [];
     proposalEntries := [];
+    rejectedEntries := [];
+    acceptedEntries := [];
   };
 
   public query func getMemorySize(): async Nat {
@@ -79,6 +93,52 @@ actor class Dao() = this {
 
   private func _getCycles(): Nat {
       Cycles.balance();
+  };
+
+  public shared({caller}) func execute(): async () {
+    var queue:[Proposal] = _proposalQueue();
+    for(proposal in queue.vals()){
+      switch(proposal){
+        case(#upgrade(value)){
+          if(value.yay > value.nay) {
+            //accepted
+            //make call to controller cansiter that should be blackedholed to upgrade this canister
+          }else {
+            //rejected
+          }
+        };
+        case(#treasury(value)){
+          if(value.yay > value.nay) {
+            //accepted
+            //make call to controller cansiter that should be blackedholed to upgrade this canister
+          }else {
+            //rejected
+          }
+        }
+      }
+    };
+  };
+
+  private func _proposalQueue(): [Proposal] {
+    var queue:[Proposal] = [];
+    let now = Time.now();
+    for((id, proposal) in proposals.entries()){
+      switch(proposal){
+        case(#upgrade(value)){
+          let timeCheck = value.timeStamp + executionTime;
+          if(timeCheck <= now){
+            queue := Array.append(queue,[#upgrade(value)])
+          }
+        };
+        case(#treasury(value)){
+          let timeCheck = value.timeStamp + executionTime;
+          if(timeCheck <= now){
+            queue := Array.append(queue,[#treasury(value)])
+          }
+        }
+      }
+    };
+    queue
   };
 
   public shared({caller}) func createProposal(request:ProposalRequest): async TokenService.TxReceipt {
@@ -115,6 +175,7 @@ actor class Dao() = this {
               nay = 0;
               executed = false;
               executedAt = null;
+              timeStamp = Time.now();
             };
             proposals.put(currentId,#upgrade(upgrade));
             #Ok(Nat32.toNat(currentId));
@@ -141,6 +202,7 @@ actor class Dao() = this {
               nay = 0;
               executed = false;
               executedAt = null;
+              timeStamp = Time.now();
             };
             proposals.put(currentId,#treasury(treasury));
             #Ok(Nat32.toNat(currentId));
@@ -204,6 +266,7 @@ actor class Dao() = this {
                 nay = value.nay;
                 executed = value.executed;
                 executedAt = value.executedAt;
+                timeStamp = Time.now();
               };
               proposals.put(proposalId,#upgrade(proposal));
             }else {
@@ -220,6 +283,7 @@ actor class Dao() = this {
                 nay = value.nay + power;
                 executed = value.executed;
                 executedAt = value.executedAt;
+                timeStamp = Time.now();
               };
               proposals.put(proposalId,#upgrade(proposal));
             }
@@ -236,6 +300,7 @@ actor class Dao() = this {
                 nay = value.nay;
                 executed = value.executed;
                 executedAt = value.executedAt;
+                timeStamp = Time.now();
               };
               proposals.put(proposalId,#treasury(proposal));
             }else {
@@ -249,6 +314,7 @@ actor class Dao() = this {
                 nay = value.nay + power;
                 executed = value.executed;
                 executedAt = value.executedAt;
+                timeStamp = Time.now();
               };
               proposals.put(proposalId,#treasury(proposal));
             }
