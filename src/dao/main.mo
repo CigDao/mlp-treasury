@@ -436,10 +436,10 @@ actor class Dao() = this {
                 yay = value.yay;
                 nay = value.nay;
                 executed = true;
-                executedAt = Time.now();
+                executedAt = ?Time.now();
                 timeStamp = value.timeStamp;
               };
-              accepted.put(value.id,#treasury(value));
+              accepted.put(value.id,#treasury(_proposal));
               //make call to treasury cansiter that should be blackedhole
               ignore TreasuryService.approveRequest(value.treasuryRequestId);
             }else {
@@ -453,10 +453,10 @@ actor class Dao() = this {
                 yay = value.yay;
                 nay = value.nay;
                 executed = false;
-                executedAt = Time.now();
+                executedAt = ?Time.now();
                 timeStamp = value.timeStamp;
               };
-              rejected.put(value.id,#treasury(value));
+              rejected.put(value.id,#treasury(_proposal));
             }
           };
           case(#treasuryAction(value)) {
@@ -471,10 +471,10 @@ actor class Dao() = this {
                 yay = value.yay;
                 nay = value.nay;
                 executed = true;
-                executedAt = Time.now();
+                executedAt = ?Time.now();
                 timeStamp = value.timeStamp;
               };
-              accepted.put(value.id,#treasuryAction(value));
+              accepted.put(value.id,#treasuryAction(_proposal));
               //make call to treasury cansiter that should be blackedhole
               ignore TreasuryService.createRequest(value.request);
             }else {
@@ -487,10 +487,10 @@ actor class Dao() = this {
                 yay = value.yay;
                 nay = value.nay;
                 executed = false;
-                executedAt = Time.now();
+                executedAt = ?Time.now();
                 timeStamp = value.timeStamp;
               };
-              rejected.put(value.id,#treasuryAction(value));
+              rejected.put(value.id,#treasuryAction(_proposal));
             }
           };
         };
