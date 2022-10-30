@@ -29,7 +29,8 @@ actor class Dao() = this {
   stable var proposalId:Nat32 = 1;
   stable var voteId:Nat32 = 1;
   stable var totalTokensSpent:Nat = 0;
-  private let executionTime:Int = 86400000000000 * 3;
+  //private let executionTime:Int = 86400000000000 * 3;
+  private let executionTime:Int = 0;
   stable var proposal:?Proposal = null;
 
   private type ErrorMessage = { #message : Text;};
@@ -115,6 +116,12 @@ actor class Dao() = this {
             }
           };
           case(#treasury(value)){
+            let timeCheck = value.timeStamp + executionTime;
+            if(timeCheck <= now){
+              ignore _tally();
+            }
+          };
+          case(#treasuryAction(value)){
             let timeCheck = value.timeStamp + executionTime;
             if(timeCheck <= now){
               ignore _tally();
@@ -205,6 +212,33 @@ actor class Dao() = this {
               timeStamp = Time.now();
             };
             proposal := ?#treasury(treasury);
+            #Ok(Nat32.toNat(currentId));
+          };
+          case(#Err(value)){
+            #Err(value);
+          };
+        }
+      };
+      case(#treasuryAction(obj)){
+        let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+        switch(receipt){
+          case(#Ok(value)){
+            //create proposal
+            let currentId = proposalId;
+            proposalId := proposalId+1;
+            let treasuryAction = {
+              id = currentId;
+              creator = Principal.toText(caller);
+              request = obj.request;
+              title = obj.title;
+              description = obj.description;
+              yay = 0;
+              nay = 0;
+              executed = false;
+              executedAt = null;
+              timeStamp = Time.now();
+            };
+            proposal := ?#treasuryAction(treasuryAction);
             #Ok(Nat32.toNat(currentId));
           };
           case(#Err(value)){
@@ -320,6 +354,37 @@ actor class Dao() = this {
               };
               proposal := ?#treasury(_proposal);
             }
+          };
+          case(#treasuryAction(value)) {
+            if(yay){
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                request = value.request;
+                title = value.title;
+                description = value.description;
+                yay = value.yay + power;
+                nay = value.nay;
+                executed = value.executed;
+                executedAt = value.executedAt;
+                timeStamp = Time.now();
+              };
+              proposal := ?#treasuryAction(_proposal);
+            }else {
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                request = value.request;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay + power;
+                executed = value.executed;
+                executedAt = value.executedAt;
+                timeStamp = Time.now();
+              };
+              proposal := ?#treasuryAction(_proposal);
+            }
           }
         };
       };
@@ -361,13 +426,73 @@ actor class Dao() = this {
           case(#treasury(value)){
             if(value.yay > value.nay) {
               //accepted
+              var _proposal = {
+                id = value.id;
+                treasuryRequestId = value.treasuryRequestId;
+                creator = value.creator;
+                vote = value.vote;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay;
+                executed = true;
+                executedAt = Time.now();
+                timeStamp = value.timeStamp;
+              };
               accepted.put(value.id,#treasury(value));
               //make call to treasury cansiter that should be blackedhole
               ignore TreasuryService.approveRequest(value.treasuryRequestId);
             }else {
+              var _proposal = {
+                id = value.id;
+                treasuryRequestId = value.treasuryRequestId;
+                creator = value.creator;
+                vote = value.vote;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay;
+                executed = false;
+                executedAt = Time.now();
+                timeStamp = value.timeStamp;
+              };
               rejected.put(value.id,#treasury(value));
             }
-          }
+          };
+          case(#treasuryAction(value)) {
+            if(value.yay > value.nay) {
+              //accepted
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                request = value.request;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay;
+                executed = true;
+                executedAt = Time.now();
+                timeStamp = value.timeStamp;
+              };
+              accepted.put(value.id,#treasuryAction(value));
+              //make call to treasury cansiter that should be blackedhole
+              ignore TreasuryService.createRequest(value.request);
+            }else {
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                request = value.request;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay;
+                executed = false;
+                executedAt = Time.now();
+                timeStamp = value.timeStamp;
+              };
+              rejected.put(value.id,#treasuryAction(value));
+            }
+          };
         };
       };
       case(null){
@@ -376,10 +501,6 @@ actor class Dao() = this {
     };
     proposal := null;
   };
-
-  /*private func _transfer(transfer : Transfer): async TokenService.TxReceipt {
-    await TokenService.transfer(transfer.recipient,transfer.amount);
-  };*/
 
   public query func http_request(request : Http.Request) : async Http.Response {
         let path = Iter.toArray(Text.tokens(request.url, #text("/")));

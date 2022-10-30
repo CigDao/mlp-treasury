@@ -76,7 +76,7 @@ actor class Treasury() = this{
 
   public shared({caller}) func createRequest(request : RequestDraft) : async Nat32 {
     let isMember = _isMember(caller);
-    assert(isMember.value);
+    //assert(isMember.value);
     var currentId = requestId;
     requestId := requestId + 1;
     let _request = _createRequest(currentId, request, caller, isMember.power);
@@ -149,6 +149,7 @@ actor class Treasury() = this{
     switch(request){
       case(?request){
         ignore _approveRequest(request,Principal.toText(caller),isMember.power);
+        ignore submitRequest(id);
         #ok();
       };
       case(null){
@@ -157,9 +158,9 @@ actor class Treasury() = this{
     };
   };
 
-  public shared({caller}) func submitRequest(id : Nat32) : async Result.Result<(?TokenService.TxReceipt), ErrorMessage> {
-    let isMember = _isMember(caller);
-    assert(isMember.value);
+  private func submitRequest(id : Nat32) : async Result.Result<(?TokenService.TxReceipt), ErrorMessage> {
+    /*let isMember = _isMember(caller);
+    assert(isMember.value);*/
     let request = requests.get(id);
     switch(request){
       case(?request){
@@ -250,47 +251,28 @@ actor class Treasury() = this{
         for((member, power) in value.approvals.entries()){
           _power := _power + power;
         };
-
-        if(_power >= threshold) {
-          return true;
-        }else {
-          return false;
-        }
       };
       case(#addMember(value)){
         for((member, power) in value.approvals.entries()){
           _power := _power + power;
         };
-
-        if(_power >= threshold) {
-          return true;
-        }else {
-          return false;
-        }
       };
       case(#removeMember(value)){
         for((member, power) in value.approvals.entries()){
           _power := _power + power;
         };
-
-        if(_power >= threshold) {
-          return true;
-        }else {
-          return false;
-        }
       };
       case(#threshold(value)){
         for((member, power) in value.approvals.entries()){
           _power := _power + power;
         };
-
-        if(_power >= threshold) {
-          return true;
-        }else {
-          return false;
-        }
       };
     };
+    if(_power >= threshold) {
+      return true;
+    }else {
+      return false;
+    }
   };
 
   private func _isMember(caller:Principal): {value:Bool; power:Nat} {

@@ -30,6 +30,10 @@ actor class Controller() = this {
         };
     };*/
     
+    public func testExecute(): async DaoService.TxReceipt {
+        await DaoService.executeProposal();
+    };
+
     public shared({caller}) func upgradeDao(wasm:Blob,arg:Blob): async () {
         let controller = Principal.fromText(Constants.controllerCanister);
         assert(caller == controller);
