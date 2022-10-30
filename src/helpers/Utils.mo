@@ -25,11 +25,15 @@ module {
 
     private type JSON = JSON.JSON;
     private type Request = Request.Request;
+    private type RequestDraft = Request.RequestDraft;
     private type Transfer = Request.Transfer;
     private type Proposal = Proposal.Proposal;
-    private type Vote = Vote.Vote;
     private type Member = Request.Member;
     private type Threshold = Request.Threshold;
+    private type TransferDraft = Request.TransferDraft;
+    private type MemberDraft = Request.MemberDraft;
+    private type ThresholdDraft = Request.ThresholdDraft;
+    private type Vote = Vote.Vote;
 
     public func natToFloat(value:Nat): Float {
         //var nat64 = Nat64.fromNat(value);
@@ -113,6 +117,23 @@ module {
         };
     };
 
+    public func requestDraftToJson(request: RequestDraft): JSON {
+        switch(request){
+            case(#transfer(value)){
+                _transferDraftToJson(value);
+            };
+            case(#addMember(value)){
+                _memberDraftToJson(value)
+            };
+            case(#removeMember(value)){
+                _memberDraftToJson(value)
+            };
+            case(#threshold(value)){
+                _thresholdDraftToJson(value);
+            };
+        };
+    };
+
     private func _approvalToJson(value: TrieMap.TrieMap<Text, Nat>): [JSON] {
         var approvals:[JSON] = [];
         for((member, power) in value.entries()){
@@ -156,6 +177,19 @@ module {
         map.put("approvals", #Array(approvals));
         map.put("executed", #Boolean(value.executed));
         map.put("createdAt", #Number(value.createdAt));
+        map.put("description", #String(value.description));
+
+        #Object(map);
+    };
+
+    private func _transferDraftToJson(value: TransferDraft): JSON {
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
+        map.put("amount", #Number(value.amount));
+        map.put("recipient", #String(value.recipient));
         map.put("description", #String(value.description));
 
         #Object(map);
@@ -229,6 +263,27 @@ module {
                 map.put("executed", #Boolean(value.executed));
                 map.put("timeStamp", #Number(value.timeStamp))
             };
+            case(#treasuryAction(value)){
+                let requestDraft = requestDraftToJson(value.request);
+                let executedAt = value.executedAt;
+                switch(executedAt){
+                    case(?executedAt){
+                        map.put("executedAt", #Number(executedAt));
+                    };
+                    case(null) {
+
+                    };
+                };
+                map.put("id", #Number(Nat32.toNat(value.id)));
+                map.put("creator", #String(value.creator));
+                map.put("title", #String(value.title));
+                map.put("description", #String(value.description));
+                map.put("request", requestDraft);
+                map.put("yay", #Number(value.yay));
+                map.put("nay", #Number(value.nay));
+                map.put("executed", #Boolean(value.executed));
+                map.put("timeStamp", #Number(value.timeStamp))
+            };
         };
         #Object(map);
     };
@@ -262,6 +317,20 @@ module {
         #Object(map);
     };
 
+    private func _memberDraftToJson(value: MemberDraft): JSON {
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
+
+        map.put("principal", #String(value.principal));
+        map.put("power", #Number(value.power));
+        map.put("description", #String(value.description));
+
+        #Object(map);
+    };
+
     private func _thresholdToJson(value: Threshold): JSON {
         var approvals:[JSON] = _approvalToJson(value.approvals);
         let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
@@ -287,6 +356,17 @@ module {
         map.put("executed", #Boolean(value.executed));
         map.put("createdAt", #Number(value.createdAt));
 
+        #Object(map);
+    };
+
+    private func _thresholdDraftToJson(value: ThresholdDraft): JSON {
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
+        map.put("power", #Number(value.power));
+        map.put("description", #String(value.description));
         #Object(map);
     };
 

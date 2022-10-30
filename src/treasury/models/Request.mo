@@ -56,15 +56,9 @@ module {
         principal:Text;
         power:Nat;
         description:Text;
-        executed:Bool;
-        createdAt:Time.Time;
-        executedAt:?Time.Time;
     };
     public type ThresholdDraft = {
         power:Nat;
         description:Text;
-        executed:Bool;
-        createdAt:Time.Time;
-        executedAt:?Time.Time;
     };
 }
