@@ -76,7 +76,7 @@ actor class Treasury() = this{
 
   public shared({caller}) func createRequest(request : RequestDraft) : async Nat32 {
     let isMember = _isMember(caller);
-    //assert(isMember.value);
+    assert(isMember.value);
     var currentId = requestId;
     requestId := requestId + 1;
     let _request = _createRequest(currentId, request, caller, isMember.power);
