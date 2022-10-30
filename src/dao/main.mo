@@ -21,6 +21,8 @@ import Result "mo:base/Result";
 import Error "mo:base/Error";
 import TokenService "../services/TokenService";
 import CansiterService "../services/CansiterService";
+import TreasuryService "../services/TreasuryService";
+import ControllerService "../services/ControllerService";
 
 actor class Dao() = this {
 
@@ -28,6 +30,7 @@ actor class Dao() = this {
   stable var voteId:Nat32 = 1;
   stable var totalTokensSpent:Nat = 0;
   private let executionTime:Int = 86400000000000 * 3;
+  var proposal:?Proposal = null;
 
   private type ErrorMessage = { #message : Text;};
   private type Proposal = Proposal.Proposal;
@@ -39,8 +42,8 @@ actor class Dao() = this {
   private stable var proposalVoteEntries : [(Nat32,[Vote])] = [];
   private var proposalVotes = HashMap.fromIter<Nat32,[Vote]>(proposalVoteEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
 
-  private stable var proposalEntries : [(Nat32,Proposal)] = [];
-  private var proposals = HashMap.fromIter<Nat32,Proposal>(proposalEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
+  /*private stable var proposalEntries : [(Nat32,Proposal)] = [];
+  private var proposals = HashMap.fromIter<Nat32,Proposal>(proposalEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});*/
 
   private stable var rejectedEntries : [(Nat32,Proposal)] = [];
   private var rejected = HashMap.fromIter<Nat32,Proposal>(rejectedEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
@@ -54,7 +57,7 @@ actor class Dao() = this {
   system func preupgrade() {
     proposalVoteEntries := Iter.toArray(proposalVotes.entries());
     voteEntries := Iter.toArray(votes.entries());
-    proposalEntries := Iter.toArray(proposals.entries());
+    //proposalEntries := Iter.toArray(proposals.entries());
     rejectedEntries := Iter.toArray(rejected.entries());
     acceptedEntries := Iter.toArray(accepted.entries());
   };
@@ -62,7 +65,7 @@ actor class Dao() = this {
   system func postupgrade() {
     proposalVoteEntries := [];
     voteEntries := [];
-    proposalEntries := [];
+    //proposalEntries := [];
     rejectedEntries := [];
     acceptedEntries := [];
   };
@@ -95,53 +98,49 @@ actor class Dao() = this {
       Cycles.balance();
   };
 
-  public shared({caller}) func execute(): async () {
-    var queue:[Proposal] = _proposalQueue();
-    for(proposal in queue.vals()){
-      switch(proposal){
-        case(#upgrade(value)){
-          if(value.yay > value.nay) {
-            //accepted
-            //make call to controller cansiter that should be blackedholed to upgrade this canister
-          }else {
-            //rejected
-          }
-        };
-        case(#treasury(value)){
-          if(value.yay > value.nay) {
-            //accepted
-            //make call to controller cansiter that should be blackedholed to upgrade this canister
-          }else {
-            //rejected
-          }
-        }
-      }
-    };
-  };
-
-  private func _proposalQueue(): [Proposal] {
-    var queue:[Proposal] = [];
+  public shared({caller}) func executeProposal(): async TokenService.TxReceipt {
+    let exist = proposal;
     let now = Time.now();
-    for((id, proposal) in proposals.entries()){
-      switch(proposal){
-        case(#upgrade(value)){
-          let timeCheck = value.timeStamp + executionTime;
-          if(timeCheck <= now){
-            queue := Array.append(queue,[#upgrade(value)])
-          }
-        };
-        case(#treasury(value)){
-          let timeCheck = value.timeStamp + executionTime;
-          if(timeCheck <= now){
-            queue := Array.append(queue,[#treasury(value)])
+    let controller = Principal.fromText(Constants.controllerCanister);
+    if(caller != controller){
+     return #Err(#Unauthorized);
+    };
+    switch(exist){
+      case(?exist){
+        switch(exist){
+          case(#upgrade(value)){
+            let timeCheck = value.timeStamp + executionTime;
+            if(timeCheck <= now){
+              ignore _tally();
+            }
+          };
+          case(#treasury(value)){
+            let timeCheck = value.timeStamp + executionTime;
+            if(timeCheck <= now){
+              ignore _tally();
+            }
           }
         }
+      };
+      case(null){
+        return #Err(#Other("No Active Proposals"));
       }
     };
-    queue
+    #Ok(0);
   };
 
   public shared({caller}) func createProposal(request:ProposalRequest): async TokenService.TxReceipt {
+    switch(proposal){
+      case(?proposal){
+        #Err(#ActiveProposal);
+      };
+      case(null){
+        await _createProposal(caller, request);
+      }
+    }
+  };
+
+  private func _createProposal(caller:Principal, request:ProposalRequest): async TokenService.TxReceipt {
     //verify the amount of tokens is approved
     let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
     if(Constants.proposalCost > allowance){
@@ -177,7 +176,7 @@ actor class Dao() = this {
               executedAt = null;
               timeStamp = Time.now();
             };
-            proposals.put(currentId,#upgrade(upgrade));
+            proposal := ?#upgrade(upgrade);
             #Ok(Nat32.toNat(currentId));
           };
           case(#Err(value)){
@@ -194,6 +193,7 @@ actor class Dao() = this {
             proposalId := proposalId+1;
             let treasury = {
               id = currentId;
+              treasuryRequestId = obj.treasuryRequestId;
               creator = Principal.toText(caller);
               vote = obj.vote;
               title = obj.title;
@@ -204,7 +204,7 @@ actor class Dao() = this {
               executedAt = null;
               timeStamp = Time.now();
             };
-            proposals.put(currentId,#treasury(treasury));
+            proposal := ?#treasury(treasury);
             #Ok(Nat32.toNat(currentId));
           };
           case(#Err(value)){
@@ -247,13 +247,13 @@ actor class Dao() = this {
   };
 
   private func _vote(proposalId:Nat32, power:Nat, yay:Bool) {
-    let exist = proposals.get(proposalId);
+    let exist = proposal;
     switch(exist){
       case(?exist){
         switch(exist){
           case(#upgrade(value)){
             if(yay){
-              var proposal = {
+              var _proposal = {
                 id = value.id;
                 creator = value.creator;
                 wasm = value.wasm;
@@ -268,9 +268,9 @@ actor class Dao() = this {
                 executedAt = value.executedAt;
                 timeStamp = Time.now();
               };
-              proposals.put(proposalId,#upgrade(proposal));
+              proposal := ?#upgrade(_proposal);
             }else {
-              var proposal = {
+              var _proposal = {
                 id = value.id;
                 creator = value.creator;
                 wasm = value.wasm;
@@ -285,13 +285,14 @@ actor class Dao() = this {
                 executedAt = value.executedAt;
                 timeStamp = Time.now();
               };
-              proposals.put(proposalId,#upgrade(proposal));
+              proposal := ?#upgrade(_proposal);
             }
           };
           case(#treasury(value)){
             if(yay){
-              var proposal = {
+              var _proposal = {
                 id = value.id;
+                treasuryRequestId = value.treasuryRequestId;
                 creator = value.creator;
                 vote = value.vote;
                 title = value.title;
@@ -302,10 +303,11 @@ actor class Dao() = this {
                 executedAt = value.executedAt;
                 timeStamp = Time.now();
               };
-              proposals.put(proposalId,#treasury(proposal));
+              proposal := ?#treasury(_proposal);
             }else {
-              var proposal = {
+              var _proposal = {
                 id = value.id;
+                treasuryRequestId = value.treasuryRequestId;
                 creator = value.creator;
                 vote = value.vote;
                 title = value.title;
@@ -316,7 +318,7 @@ actor class Dao() = this {
                 executedAt = value.executedAt;
                 timeStamp = Time.now();
               };
-              proposals.put(proposalId,#treasury(proposal));
+              proposal := ?#treasury(_proposal);
             }
           }
         };
@@ -341,6 +343,40 @@ actor class Dao() = this {
     };
   };
 
+  private func _tally(): async () {
+    switch(proposal){
+      case(?proposal){
+        switch(proposal){
+          case(#upgrade(value)){
+            if(value.yay > value.nay) {
+              //accepted
+              accepted.put(value.id,#upgrade(value));
+              //make call to controller cansiter that should be blackedholed to upgrade this canister
+              ignore ControllerService.upgradeDao(value.wasm,value.args);
+            }else {
+              rejected.put(value.id,#upgrade(value));
+              //rejected
+            }
+          };
+          case(#treasury(value)){
+            if(value.yay > value.nay) {
+              //accepted
+              accepted.put(value.id,#treasury(value));
+              //make call to treasury cansiter that should be blackedhole
+              ignore TreasuryService.approveRequest(value.treasuryRequestId);
+            }else {
+              rejected.put(value.id,#treasury(value));
+            }
+          }
+        };
+      };
+      case(null){
+
+      }
+    };
+    proposal := null;
+  };
+
   /*private func _transfer(transfer : Transfer): async TokenService.TxReceipt {
     await TokenService.transfer(transfer.recipient,transfer.amount);
   };*/
@@ -350,7 +386,8 @@ actor class Dao() = this {
 
         if (path.size() == 1) {
             switch (path[0]) {
-                case ("fetchProposals") return _fetchProposalResponse();
+                case ("fetchAcceptedProposals") return _fetchAcceptedProposalResponse();
+                case ("fetchRejectedProposals") return _fetchRejectedProposalResponse();
                 case ("getMemorySize") return _natResponse(_getMemorySize());
                 case ("getHeapSize") return _natResponse(_getHeapSize());
                 case ("getCycles") return _natResponse(_getCycles());
@@ -379,9 +416,17 @@ actor class Dao() = this {
         };
     };
 
-    private func _fetchProposals(): [Proposal] {
+    private func _fetchAcceptedProposals(): [Proposal] {
       var results:[Proposal] = [];
-      for ((id,request) in proposals.entries()) {
+      for ((id,request) in accepted.entries()) {
+        results := Array.append(results,[request]);
+      };
+      results;
+    };
+
+    private func _fetchRejectedProposals(): [Proposal] {
+      var results:[Proposal] = [];
+      for ((id,request) in rejected.entries()) {
         results := Array.append(results,[request]);
       };
       results;
@@ -400,8 +445,27 @@ actor class Dao() = this {
       };
     };
 
-    private func _fetchProposalResponse() : Http.Response {
-      let _proposals =  _fetchProposals();
+    private func _fetchAcceptedProposalResponse() : Http.Response {
+      let _proposals =  _fetchAcceptedProposals();
+      var result:[JSON] = [];
+
+      for(proposal in _proposals.vals()) {
+        let json = Utils._proposalToJson(proposal);
+        result := Array.append(result,[json]);
+      };
+
+      let json = #Array(result);
+      let blob = Text.encodeUtf8(JSON.show(json));
+      let response : Http.Response = {
+          status_code = 200;
+          headers = [("Content-Type", "application/json")];
+          body = blob;
+          streaming_strategy = null;
+      };
+    };
+
+    private func _fetchRejectedProposalResponse() : Http.Response {
+      let _proposals =  _fetchRejectedProposals();
       var result:[JSON] = [];
 
       for(proposal in _proposals.vals()) {
@@ -441,7 +505,7 @@ actor class Dao() = this {
 
     private func _proposalResponse(value : Text) : Http.Response {
       let id = Utils.textToNat32(value);
-      let exist = proposals.get(id);
+      let exist = proposal;
       switch(exist){
         case(?exist){
           let json = Utils._proposalToJson(exist);

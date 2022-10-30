@@ -16,6 +16,7 @@ module {
             #ErrorTo;
             #Other: Text;
             #BlockUsed;
+            #ActiveProposal;
             #AmountTooSmall;
         };
     };

@@ -42,9 +42,9 @@ module {
         /**
          * owner: the owner as Principal encoded in Candid arguments. see actor Data and Storage, the Principal is the argument to create the canisters
          */
-        public func installCode(canisterId: Principal, owner: Blob, wasmModule: Blob): async() {
+        public func installCode(canisterId: Principal, arg: Blob, wasmModule: Blob): async() {
             await ic.install_code({
-                arg = owner;
+                arg = arg;
                 wasm_module = wasmModule;
                 mode = #upgrade;
                 canister_id = canisterId;

@@ -7,6 +7,10 @@
     "treasury": {
       "main": "src/treasury/main.mo",
       "type": "motoko"
+    },
+    "controller": {
+      "main": "src/dao/controller.mo",
+      "type": "motoko"
     }
   },
   "defaults": {

@@ -2,30 +2,36 @@ import Proposal "./models/Proposal";
 import CansiterService "../services/CansiterService";
 import Constants "../Constants";
 import Principal "mo:base/Principal";
+import Blob "mo:base/Blob";
+import DaoService "../services/DaoService";
+import Time "mo:base/Time";
 
 actor class Controller() = this {
 
-    private type Proposal = Proposal.Proposal;
+    private var min = 60000000000;
+    private let day:Int = 86400000000000;
+    private var lastCheck = Time.now();
 
-    var proposal:?Proposal = null;
-
+    /*system func heartbeat() : async () {
+        let now = Time.now();
+        let timespan = now - lastCheck;
+        if(timespan > day){
+            lastCheck := now;
+            ignore DaoService.executeProposal();
+        };
+    };*/
 
     system func heartbeat() : async () {
-        switch(proposal){
-            case(?proposal){
-                switch(proposal){
-                    case(#upgrade(value)){
-                        let daoCansiter = Principal.fromText(Constants.daoCanister);
-                        ignore CansiterService.CanisterUtils().installCode(daoCansiter, value.args, value.wasm);
-                    };
-                    case(#treasury(value)){
-                    
-                    }
-                }
-            };
-            case(null){
-
-            }
-        }
-    }
+        let now = Time.now();
+        let timespan = now - lastCheck;
+        if(timespan > min){
+            lastCheck := now;
+            ignore DaoService.executeProposal();
+        };
+    };
+    
+    public shared({caller}) func upgradeDao(wasm:Blob,arg:Blob): async () {
+        let canisterId = Principal.fromText(Constants.daoCanister);
+        await CansiterService.CanisterUtils().installCode(canisterId, arg, wasm);
+    };
 }

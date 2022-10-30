@@ -40,9 +40,11 @@ module {
         vote:Bool;
         title:Text;
         description:Text;
+        treasuryRequestId:Nat32;
     };
     public type Treasury = {
         id:Nat32;
+        treasuryRequestId:Nat32;
         creator:Text;
         vote:Bool;
         title:Text;

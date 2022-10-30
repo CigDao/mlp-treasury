@@ -17,12 +17,13 @@ import Cycles "mo:base/ExperimentalCycles";
 import Result "mo:base/Result";
 import Error "mo:base/Error";
 import TokenService "../services/TokenService";
+import Constants "../Constants";
 
-actor class Treasury(_owner: Principal) = this{
+actor class Treasury() = this{
 
   stable var requestId:Nat32 = 1;
   stable var threshold:Nat = 1;
-  stable var owner = _owner;
+  stable var owner = Principal.fromText(Constants.daoCanister);
 
   private type ErrorMessage = { #message : Text;};
   private type Request = Request.Request;
