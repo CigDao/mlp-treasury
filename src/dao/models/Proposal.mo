@@ -52,6 +52,7 @@ module {
         executedAt:?Time.Time;
         timeStamp:Time.Time;
     };
+
     public type UpgradeRequest = {
         wasm:Blob;
         args:Blob;
