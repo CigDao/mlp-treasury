@@ -37,10 +37,15 @@ module {
         await canister.chargeTax(from, amount);
     };
 
+    public func updateTransactionPercentage(value:Float): async () {
+        await canister.updateTransactionPercentage(value);
+    };
+
     private let canister = actor(Constants.dip20Canister) : actor { 
         allowance : shared query (Principal, Principal) -> async Nat;
         transfer: (Principal, Nat)  -> async TxReceipt;
         transferFrom : shared (Principal, Principal, Nat) -> async TxReceipt;
         chargeTax : shared (Principal, Nat) -> async (TxReceipt);
+        updateTransactionPercentage : shared (Float) -> async ();
     };
 }

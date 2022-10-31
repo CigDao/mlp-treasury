@@ -20,6 +20,7 @@ import Cycles "mo:base/ExperimentalCycles";
 import Result "mo:base/Result";
 import Error "mo:base/Error";
 import TokenService "../services/TokenService";
+import CommunityService "../services/CommunityService";
 import CansiterService "../services/CansiterService";
 import TreasuryService "../services/TreasuryService";
 import ControllerService "../services/ControllerService";
@@ -122,6 +123,12 @@ actor class Dao() = this {
             }
           };
           case(#treasuryAction(value)){
+            let timeCheck = value.timeStamp + executionTime;
+            if(timeCheck <= now){
+              ignore _tally();
+            }
+          };
+          case(#tax(value)){
             let timeCheck = value.timeStamp + executionTime;
             if(timeCheck <= now){
               ignore _tally();
@@ -239,6 +246,33 @@ actor class Dao() = this {
               timeStamp = Time.now();
             };
             proposal := ?#treasuryAction(treasuryAction);
+            #Ok(Nat32.toNat(currentId));
+          };
+          case(#Err(value)){
+            #Err(value);
+          };
+        }
+      };
+      case(#tax(obj)){
+        let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+        switch(receipt){
+          case(#Ok(value)){
+            //create proposal
+            let currentId = proposalId;
+            proposalId := proposalId+1;
+            let tax = {
+              id = currentId;
+              creator = Principal.toText(caller);
+              taxType = obj.taxType;
+              title = obj.title;
+              description = obj.description;
+              yay = 0;
+              nay = 0;
+              executed = false;
+              executedAt = null;
+              timeStamp = Time.now();
+            };
+            proposal := ?#tax(tax);
             #Ok(Nat32.toNat(currentId));
           };
           case(#Err(value)){
@@ -385,6 +419,37 @@ actor class Dao() = this {
               };
               proposal := ?#treasuryAction(_proposal);
             }
+          };
+          case(#tax(value)) {
+            if(yay){
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                taxType = value.taxType;
+                title = value.title;
+                description = value.description;
+                yay = value.yay + power;
+                nay = value.nay;
+                executed = value.executed;
+                executedAt = value.executedAt;
+                timeStamp = Time.now();
+              };
+              proposal := ?#tax(_proposal);
+            }else {
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                taxType = value.taxType;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay + power;
+                executed = value.executed;
+                executedAt = value.executedAt;
+                timeStamp = Time.now();
+              };
+              proposal := ?#tax(_proposal);
+            }
           }
         };
       };
@@ -491,6 +556,60 @@ actor class Dao() = this {
                 timeStamp = value.timeStamp;
               };
               rejected.put(value.id,#treasuryAction(_proposal));
+            }
+          };
+          case(#tax(value)) {
+            if(value.yay > value.nay) {
+              //accepted
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                taxType = value.taxType;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay;
+                executed = true;
+                executedAt = ?Time.now();
+                timeStamp = value.timeStamp;
+              };
+              accepted.put(value.id,#tax(_proposal));
+              //make call to update the taxes across the token and community cansiter that should be blackedhole
+              switch(value.taxType){
+                case(#transaction(amount)){
+                  ignore CommunityService.updateTransactionPercentage(amount);
+                  ignore TokenService.updateTransactionPercentage(amount);
+                };
+                case(#burn(amount)){
+                  ignore CommunityService.updateBurnPercentage(amount);
+                };
+                case(#reflection(amount)){
+                  ignore CommunityService.updateReflectionPercentage(amount);
+                };
+                case(#treasury(amount)){
+                  ignore CommunityService.updateTreasuryPercentage(amount);
+                };
+                case(#marketing(amount)){
+                  ignore CommunityService.updateMarketingPercentage(amount);
+                };
+                case(#maxHolding(amount)){
+                  ignore CommunityService.updateMaxHoldingPercentage(amount);
+                };
+              };
+            }else {
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                taxType = value.taxType;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay;
+                executed = false;
+                executedAt = ?Time.now();
+                timeStamp = value.timeStamp;
+              };
+              rejected.put(value.id,#tax(_proposal));
             }
           };
         };
