@@ -67,11 +67,19 @@ module {
         timeStamp:Time.Time;
     };
 
+    public type Canister = {
+        #dao;
+        #controller;
+        #treasury;
+        #community;
+    };
+
     public type Upgrade = {
         id:Nat32;
         creator:Text;
         wasm:Blob;
         args:Blob;
+        canister:Canister;
         title:Text;
         description:Text;
         source:Text;
@@ -86,6 +94,7 @@ module {
     public type UpgradeRequest = {
         wasm:Blob;
         args:Blob;
+        canister:Canister;
         title:Text;
         description:Text;
         source:Text;

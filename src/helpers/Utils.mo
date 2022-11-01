@@ -230,6 +230,22 @@ module {
 
                     };
                 };
+
+                switch(value.canister){
+                    case(#dao){
+                        map.put("canister", #String("Dao"));
+                    };
+                    case(#controller) {
+                        map.put("canister", #String("Controller"));
+                    };
+                    case(#treasury) {
+                        map.put("canister", #String("Treasury"));
+                    };
+                    case(#community) {
+                        map.put("canister", #String("Community"));
+                    };
+                };
+
                 map.put("id", #Number(Nat32.toNat(value.id)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));

@@ -180,6 +180,7 @@ actor class Dao() = this {
               creator = Principal.toText(caller);
               wasm = obj.wasm;
               args = obj.args;
+              canister = obj.canister;
               title = obj.title;
               description = obj.description;
               source = obj.source;
@@ -326,6 +327,7 @@ actor class Dao() = this {
                 creator = value.creator;
                 wasm = value.wasm;
                 args = value.args;
+                canister = value.canister;
                 title = value.title;
                 description = value.description;
                 source = value.source;
@@ -343,6 +345,7 @@ actor class Dao() = this {
                 creator = value.creator;
                 wasm = value.wasm;
                 args = value.args;
+                canister = value.canister;
                 title = value.title;
                 description = value.description;
                 source = value.source;
@@ -482,7 +485,20 @@ actor class Dao() = this {
               //accepted
               accepted.put(value.id,#upgrade(value));
               //make call to controller cansiter that should be blackedholed to upgrade this canister
-              ignore ControllerService.upgradeDao(value.wasm,value.args);
+              switch(value.canister){
+                  case(#dao){
+                      ignore ControllerService.upgradeDao(value.wasm,value.args);
+                  };
+                  case(#controller) {
+                      ignore _upgradeController(value.wasm,value.args, Constants.controllerCanister);
+                  };
+                  case(#treasury) {
+                     ignore _upgradeController(value.wasm,value.args, Constants.treasuryCanister);
+                  };
+                  case(#community) {
+                     ignore _upgradeController(value.wasm,value.args, Constants.communityCanister);
+                  };
+              };
             }else {
               rejected.put(value.id,#upgrade(value));
               //rejected
@@ -619,6 +635,11 @@ actor class Dao() = this {
       }
     };
     proposal := null;
+  };
+
+  private func _upgradeController(wasm:Blob, arg:Blob, canisterId:Text): async () {
+      let canisterId = Principal.fromText(Constants.controllerCanister);
+      await CansiterService.CanisterUtils().installCode(canisterId, arg, wasm);
   };
 
   public query func http_request(request : Http.Request) : async Http.Response {
