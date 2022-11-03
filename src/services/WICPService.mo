@@ -8,6 +8,7 @@ module {
         #InsufficientBalance;
         #ErrorOperationStyle;
         #Unauthorized;
+        #NoRound;
         #LedgerTrap;
         #ErrorTo;
         #Other;

@@ -61,10 +61,7 @@ actor class Distribution(_owner:Principal) = this {
         let elapsed = now - lastRoundEnd;
         if(elapsed > roundTime and roundId <= lastRound) {
             lastRoundEnd := now;
-            if(roundId < lastRound) {
-                roundId := roundId + 1;
-            };
-            //distribute tokens and update deposits
+            roundId := roundId + 1;
         };
     };
 
@@ -104,6 +101,7 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func claim(round:Nat32): async TokenService.TxReceipt {
+        assert(roundId > round);
         let exist = rounds.get(round);
         switch(exist){
             case(?exist){
@@ -145,7 +143,6 @@ actor class Distribution(_owner:Principal) = this {
 
     public shared({caller}) func deposit(amount:Nat): async WICPService.TxReceipt {
         assert(amount > 0);
-        let currentId = roundId;
         let spender = Principal.fromActor(this);
         let treasury = Principal.fromText(Constants.treasuryCanister);
         let allowance = await WICPService.canister.allowance(caller,spender);
@@ -153,7 +150,10 @@ actor class Distribution(_owner:Principal) = this {
             return #Err(#InsufficientAllowance);
         };
         let result = await WICPService.canister.transferFrom(caller,treasury,amount);
-
+        if(roundId > lastRound){
+            return #Err(#NoRound);
+        };
+        let currentId = roundId;
         switch(result){
             case(#Ok(value)){
                 let exist = rounds.get(currentId);
