@@ -8,6 +8,7 @@ import HashMap "mo:base/HashMap";
 import TrieMap "mo:base/TrieMap";
 import List "mo:base/List";
 import Time "mo:base/Time";
+import Float "mo:base/Float";
 import Text "mo:base/Text";
 import Http "../helpers/http";
 import Utils "../helpers/Utils";
@@ -34,6 +35,8 @@ actor class Distribution(_owner:Principal) = this {
     private stable var roundId:Nat32 = 0;
     private stable var accountId:Nat32 = 0;
     private stable var lastRound:Nat32 = 0;
+
+    private let disitribtionPercentage:Float = 0.75;
 
     private type ErrorMessage = { #message : Text;};
     private type JSON = JSON.JSON;
@@ -97,7 +100,8 @@ actor class Distribution(_owner:Principal) = this {
         roundId := 1;
         lastRound := Nat32.fromNat(_lastRound);
         let supply = await _tokenSupply();
-        tokensPerRound :=  Nat.div(supply,_lastRound);
+        let distributionSupply = Float.mul(Utils.natToFloat(supply), disitribtionPercentage);
+        tokensPerRound :=  Nat.div(Utils.floatToNat(distributionSupply),_lastRound);
     };
 
     public shared({caller}) func claim(round:Nat32): async TokenService.TxReceipt {
