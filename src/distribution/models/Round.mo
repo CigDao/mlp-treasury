@@ -1,6 +1,8 @@
-/*module {
+module {
     public type Round = {
         id:Nat32;
-        end
+        holder:Principal;
+        deposit:Nat;
+        recieved:Nat;
     }
-}*/
+}

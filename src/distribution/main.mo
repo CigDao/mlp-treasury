@@ -14,7 +14,7 @@ import Utils "../helpers/Utils";
 import JSON "../helpers/JSON";
 import Constants "../Constants";
 import Response "../models/Response";
-import Account "./models/Account";
+import Round "./models/Round";
 import Cycles "mo:base/ExperimentalCycles";
 import Result "mo:base/Result";
 import Error "mo:base/Error";
@@ -28,30 +28,44 @@ import ControllerService "../services/ControllerService";
 actor class Distribution(_owner:Principal) = this {
 
     private let roundTime:Int = 86400000000000;
+    private stable var lastRoundEnd:Int = 0;
+    private stable var tokensPerRound:Nat = 0;
 
-    private var roundId:Nat32 = 1;
-    private var lastRound:Nat32 = 180;
-    private let executionTime:Int = 0;
+    private stable var roundId:Nat32 = 0;
+    private stable var accountId:Nat32 = 0;
+    private stable var lastRound:Nat32 = 0;
 
     private type ErrorMessage = { #message : Text;};
     private type JSON = JSON.JSON;
     private type ApiError = Response.ApiError;
-    private type Account = Account.Account;
+    private type Round = Round.Round;
 
     private stable var roundEntries : [(Nat32,[Principal])] = [];
     private var rounds = HashMap.fromIter<Nat32,[Principal]>(roundEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
 
-    private stable var accountEntries : [(Principal,Account)] = [];
-    private var accounts = HashMap.fromIter<Principal,Account>(accountEntries.vals(), 0, Principal.equal, Principal.hash);
+    private stable var accountEntries : [(Principal,[Round])] = [];
+    private var deposits = HashMap.fromIter<Principal,[Round]>(accountEntries.vals(), 0, Principal.equal, Principal.hash);
 
     system func preupgrade() {
         roundEntries := Iter.toArray(rounds.entries());
-        accountEntries := Iter.toArray(accounts.entries());
+        accountEntries := Iter.toArray(deposits.entries());
     };
 
     system func postupgrade() {
         roundEntries := [];
         accountEntries := [];
+    };
+
+    system func heartbeat() : async () {
+        let now = Time.now();
+        let elapsed = now - lastRoundEnd;
+        if(elapsed > roundTime and roundId <= lastRound) {
+            lastRoundEnd := now;
+            if(roundId < lastRound) {
+                roundId := roundId + 1;
+            };
+            //distribute tokens and update deposits
+        };
     };
 
     public query func getMemorySize(): async Nat {
@@ -82,7 +96,55 @@ actor class Distribution(_owner:Principal) = this {
         Cycles.balance();
     };
 
+    public shared({caller}) func start(_lastRound:Nat): async () {
+        roundId := 1;
+        lastRound := Nat32.fromNat(_lastRound);
+        let supply = await _tokenSupply();
+        tokensPerRound :=  Nat.div(supply,_lastRound);
+    };
+
+    public shared({caller}) func claim(round:Nat32): async TokenService.TxReceipt {
+        let exist = rounds.get(round);
+        switch(exist){
+            case(?exist){
+                let principal = Array.find<Principal>(exist,func(e:Principal){e == caller});
+                switch(principal){
+                    case(?principal){
+                        let currentRounds = deposits.get(principal);
+                        switch(currentRounds){
+                            case(?currentRounds){
+                                let currentRound = Array.find<Round>(currentRounds,func(e:Round){e.id == round});
+                                //check if any rounds match the current one
+                                switch(currentRound){
+                                    case(?currentRound){
+                                        let total = _roundTotal(round);
+                                        let payout = roundPayout(total,currentRound.deposit);
+                                        //transfer amount 
+                                        return await TokenService.transfer(caller,payout);
+                                    };
+                                    case(null){
+                                        return #Err(#Unauthorized);
+                                    };
+                                };
+                            };
+                            case(null){
+                                return #Err(#Unauthorized);
+                            }
+                        };
+                    };
+                    case(null){
+                        return #Err(#Unauthorized);
+                    };
+                };
+            };
+            case(null){
+                return #Err(#Unauthorized);
+            }
+        };
+    };
+
     public shared({caller}) func deposit(amount:Nat): async WICPService.TxReceipt {
+        assert(amount > 0);
         let currentId = roundId;
         let spender = Principal.fromActor(this);
         let treasury = Principal.fromText(Constants.treasuryCanister);
@@ -95,19 +157,74 @@ actor class Distribution(_owner:Principal) = this {
         switch(result){
             case(#Ok(value)){
                 let exist = rounds.get(currentId);
-                let account = {
-                    holder = caller;
-                    deposit = amount;
-                    recieved = 0;
-                };
-                accounts.put(caller,account);
+                //deposits.put(caller,round);
                 switch(exist){
+                    //checks if round exist
                     case(?exist) {
-                        let currentAccount = Array.append(exist,[caller]);
-                        rounds.put(currentId,currentAccount);
+                        let principal = Array.find<Principal>(exist,func(e:Principal){e == caller});
+                        //check if principal already exist for the round
+                        switch(principal){
+                            case(?principal){
+                                let currentRounds = deposits.get(principal);
+                                // checks if the principal has any rounds it participated in
+                                switch(currentRounds){
+                                    case(?currentRounds){
+                                        let currentRound = Array.find<Round>(currentRounds,func(e:Round){e.id == currentId});
+                                        //check if any rounds match the current one
+                                        switch(currentRound){
+                                            case(?currentRound){
+                                                let round = {
+                                                    id = currentId;
+                                                    holder = caller;
+                                                    deposit = currentRound.deposit + amount;
+                                                    recieved = 0;
+                                                };
 
+                                                let _currentRounds = Array.append(currentRounds,[round]);
+                                                deposits.put(caller,_currentRounds);
+                                            };
+                                            case(null){
+                                                let round = {
+                                                    id = currentId;
+                                                    holder = caller;
+                                                    deposit = amount;
+                                                    recieved = 0;
+                                                };
+                                                deposits.put(caller,[round]);
+                                            };
+                                        };
+                                    };
+                                    case(null){
+                                        let round = {
+                                            id = currentId;
+                                            holder = caller;
+                                            deposit = amount;
+                                            recieved = 0;
+                                        };
+                                        deposits.put(caller,[round]);
+                                    }
+                                };
+                            };
+                            case(null){
+                                let round = {
+                                    id = currentId;
+                                    holder = caller;
+                                    deposit = amount;
+                                    recieved = 0;
+                                };
+                                deposits.put(caller,[round]);
+                                rounds.put(currentId,[caller]);
+                            };
+                        };
                     };
                     case(null){
+                        let round = {
+                            id = currentId;
+                            holder = caller;
+                            deposit = amount;
+                            recieved = 0;
+                        };
+                        deposits.put(caller,[round]);
                         rounds.put(currentId,[caller]);
                     };
                 };
@@ -124,6 +241,38 @@ actor class Distribution(_owner:Principal) = this {
         await TokenService.totalSupply();
     };
 
+    private func _roundTotal(round:Nat32): Nat {
+        let exist = rounds.get(round);
+        switch(exist){
+            case(?exist){
+                var amount = 0;
+                for (principal in exist.vals()){
+                    let _deposits = deposits.get(principal);
+                    switch(_deposits){
+                        case(?_deposits){
+                            for (deposit in _deposits.vals()){
+                                if(deposit.id == round){
+                                    amount := amount + deposit.deposit;
+                                };
+                            };
+                        };
+                        case(null){
+
+                        };
+                    };
+                };
+                amount;
+            };
+            case(null){
+                return 0;
+            };
+        };
+    };
+
+    private func roundPayout(total:Nat,deposit:Nat): Nat {
+        let percentage = Nat.div(deposit,total);
+        Nat.mul(tokensPerRound,percentage);
+    };
 
     /*public query func http_request(request : Http.Request) : async Http.Response {
         let path = Iter.toArray(Text.tokens(request.url, #text("/")));
