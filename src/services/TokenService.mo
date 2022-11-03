@@ -41,11 +41,16 @@ module {
         await canister.updateTransactionPercentage(value);
     };
 
+    public func totalSupply(): async Nat {
+        await canister.totalSupply();
+    };
+
     private let canister = actor(Constants.dip20Canister) : actor { 
         allowance : shared query (Principal, Principal) -> async Nat;
         transfer: (Principal, Nat)  -> async TxReceipt;
         transferFrom : shared (Principal, Principal, Nat) -> async TxReceipt;
         chargeTax : shared (Principal, Nat) -> async (TxReceipt);
         updateTransactionPercentage : shared (Float) -> async ();
+        totalSupply : shared query () -> async Nat;
     };
 }
