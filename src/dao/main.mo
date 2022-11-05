@@ -27,12 +27,13 @@ import ControllerService "../services/ControllerService";
 
 actor class Dao() = this {
 
-  stable var proposalId:Nat32 = 1;
-  stable var voteId:Nat32 = 1;
-  stable var totalTokensSpent:Nat = 0;
+  private stable var proposalId:Nat32 = 1;
+  private stable var voteId:Nat32 = 1;
+  private stable var totalTokensSpent:Nat = 0;
   //private let executionTime:Int = 86400000000000 * 3;
   private let executionTime:Int = 0;
-  stable var proposal:?Proposal = null;
+  private stable var proposal:?Proposal = null;
+  private stable var proposalCost:Nat = 100000000000;
 
   private type ErrorMessage = { #message : Text;};
   private type Proposal = Proposal.Proposal;
@@ -133,6 +134,12 @@ actor class Dao() = this {
             if(timeCheck <= now){
               ignore _tally();
             }
+          };
+          case(#proposalCost(value)){
+            let timeCheck = value.timeStamp + executionTime;
+            if(timeCheck <= now){
+              ignore _tally();
+            }
           }
         }
       };
@@ -157,7 +164,7 @@ actor class Dao() = this {
   private func _createProposal(caller:Principal, request:ProposalRequest): async TokenService.TxReceipt {
     //verify the amount of tokens is approved
     let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
-    if(Constants.proposalCost > allowance){
+    if(proposalCost > allowance){
       return #Err(#InsufficientAllowance);
     };
     //verify hash if upgrading wasm
@@ -169,7 +176,7 @@ actor class Dao() = this {
         };
 
         //tax tokens
-        let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+        let receipt = await TokenService.chargeTax(caller,proposalCost);
         switch(receipt){
           case(#Ok(value)){
             //create proposal
@@ -200,7 +207,7 @@ actor class Dao() = this {
         }
       };
       case(#treasury(obj)){
-        let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+        let receipt = await TokenService.chargeTax(caller,proposalCost);
         switch(receipt){
           case(#Ok(value)){
             //create proposal
@@ -228,7 +235,7 @@ actor class Dao() = this {
         }
       };
       case(#treasuryAction(obj)){
-        let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+        let receipt = await TokenService.chargeTax(caller,proposalCost);
         switch(receipt){
           case(#Ok(value)){
             //create proposal
@@ -255,7 +262,7 @@ actor class Dao() = this {
         }
       };
       case(#tax(obj)){
-        let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+        let receipt = await TokenService.chargeTax(caller,proposalCost);
         switch(receipt){
           case(#Ok(value)){
             //create proposal
@@ -280,6 +287,33 @@ actor class Dao() = this {
             #Err(value);
           };
         }
+      };
+      case(#proposalCost(obj)){
+        let receipt = await TokenService.chargeTax(caller,proposalCost);
+        switch(receipt){
+          case(#Ok(value)){
+            //create proposal
+            let currentId = proposalId;
+            proposalId := proposalId+1;
+            let proposalCost = {
+              id = currentId;
+              creator = Principal.toText(caller);
+              amount = obj.amount;
+              title = obj.title;
+              description = obj.description;
+              yay = 0;
+              nay = 0;
+              executed = false;
+              executedAt = null;
+              timeStamp = Time.now();
+            };
+            proposal := ?#proposalCost(proposalCost);
+            #Ok(Nat32.toNat(currentId));
+          };
+          case(#Err(value)){
+            #Err(value);
+          };
+        }
       }
     };
   };
@@ -291,7 +325,7 @@ actor class Dao() = this {
       return #Err(#InsufficientAllowance);
     };
     //tax tokens
-    let receipt = await TokenService.chargeTax(caller,Constants.proposalCost);
+    let receipt = await TokenService.chargeTax(caller,proposalCost);
     switch(receipt){
       case(#Ok(value)){
         let vote = {
@@ -452,6 +486,37 @@ actor class Dao() = this {
                 timeStamp = Time.now();
               };
               proposal := ?#tax(_proposal);
+            }
+          };
+          case(#proposalCost(value)) {
+            if(yay){
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                amount = value.amount;
+                title = value.title;
+                description = value.description;
+                yay = value.yay + power;
+                nay = value.nay;
+                executed = value.executed;
+                executedAt = value.executedAt;
+                timeStamp = Time.now();
+              };
+              proposal := ?#proposalCost(_proposal);
+            }else {
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                amount = value.amount;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay + power;
+                executed = value.executed;
+                executedAt = value.executedAt;
+                timeStamp = Time.now();
+              };
+              proposal := ?#proposalCost(_proposal);
             }
           }
         };
@@ -628,6 +693,40 @@ actor class Dao() = this {
               rejected.put(value.id,#tax(_proposal));
             }
           };
+          case(#proposalCost(value)) {
+            if(value.yay > value.nay) {
+              //accepted
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                amount = value.amount;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay;
+                executed = true;
+                executedAt = ?Time.now();
+                timeStamp = value.timeStamp;
+              };
+              accepted.put(value.id,#proposalCost(_proposal));
+              //make call to update the taxes across the token and community cansiter that should be blackedhole
+              proposalCost := value.amount;
+            }else {
+              var _proposal = {
+                id = value.id;
+                creator = value.creator;
+                amount = value.amount;
+                title = value.title;
+                description = value.description;
+                yay = value.yay;
+                nay = value.nay;
+                executed = false;
+                executedAt = ?Time.now();
+                timeStamp = value.timeStamp;
+              };
+              rejected.put(value.id,#proposalCost(_proposal));
+            }
+          };
         };
       };
       case(null){
@@ -647,7 +746,8 @@ actor class Dao() = this {
 
         if (path.size() == 1) {
             switch (path[0]) {
-              case ("getProposal") return _proposalResponse();
+                case ("getProposal") return _proposalResponse();
+                case ("proposalCost") return _natResponse(proposalCost);
                 case ("fetchAcceptedProposals") return _fetchAcceptedProposalResponse();
                 case ("fetchRejectedProposals") return _fetchRejectedProposalResponse();
                 case ("getMemorySize") return _natResponse(_getMemorySize());

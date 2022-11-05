@@ -4,7 +4,6 @@ module {
     public let communityCanister = "fppg4-cyaaa-aaaap-aanza-cai";
     public let treasuryCanister = "unwqb-kyaaa-aaaak-ac5aa-cai";
     public let controllerCanister = "hssiu-rqaaa-aaaap-aanwq-cai";
-    public let proposalCost:Nat = 100000000000;
 
     public let Ledger_Canister = "ryjl3-tyaaa-aaaaa-aaaba-cai";
     public let WXTC_Canister = "aanaa-xaaaa-aaaah-aaeiq-cai";

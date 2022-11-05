@@ -59,14 +59,14 @@ actor class Distribution(_owner:Principal) = this {
         accountEntries := [];
     };
 
-    system func heartbeat() : async () {
+    /*system func heartbeat() : async () {
         let now = Time.now();
         let elapsed = now - lastRoundEnd;
         if(elapsed > roundTime and roundId <= lastRound) {
             lastRoundEnd := now;
             roundId := roundId + 1;
         };
-    };
+    };*/
 
     public query func getMemorySize(): async Nat {
         let size = Prim.rts_memory_size();

@@ -11,6 +11,7 @@ module {
         #treasury:Treasury;
         #treasuryAction:TreasuryAction;
         #tax:Tax;
+        #proposalCost:PropodalCost;
     };
 
     public type ProposalRequest = {
@@ -18,6 +19,7 @@ module {
         #treasury:TreasuryRequest;
         #treasuryAction:TreasuryActionRequest;
         #tax:TaxRequest;
+        #proposalCost:PropodalCostRequest;
     };
 
     public type TaxType = {
@@ -35,10 +37,29 @@ module {
         description:Text;
     };
 
+    public type PropodalCostRequest = {
+        amount:Nat;
+        title:Text;
+        description:Text;
+    };
+
     public type Tax = {
         id:Nat32;
         creator:Text;
         taxType:TaxType;
+        title:Text;
+        description:Text;
+        yay:Nat;
+        nay:Nat;
+        executed:Bool;
+        executedAt:?Time.Time;
+        timeStamp:Time.Time;
+    };
+
+    public type PropodalCost = {
+        id:Nat32;
+        creator:Text;
+        amount:Nat;
         title:Text;
         description:Text;
         yay:Nat;
