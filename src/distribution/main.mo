@@ -35,7 +35,7 @@ actor class Distribution(_owner:Principal) = this {
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;
     private stable var lastRound:Nat = 0;
-
+    private stable var isStart = false;
     private let disitribtionPercentage:Float = 0.75;
 
     private type ErrorMessage = { #message : Text;};
@@ -97,6 +97,8 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func startDistribution(_lastRound:Nat): async () {
+        assert(isStart == false);
+        isStart := true;
         lastRound :=_lastRound;
         let supply = await _tokenSupply();
         let distributionSupply = Float.mul(Utils.natToFloat(supply), disitribtionPercentage);
