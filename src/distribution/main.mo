@@ -3,6 +3,7 @@ import Iter "mo:base/Iter";
 import Principal "mo:base/Principal";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
+import Nat64 "mo:base/Nat64";
 import Array "mo:base/Array";
 import HashMap "mo:base/HashMap";
 import TrieMap "mo:base/TrieMap";
@@ -33,9 +34,7 @@ actor class Distribution(_owner:Principal) = this {
     private stable var lastRoundEnd:Int = 0;
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;
-    private stable var roundId:Nat32 = 0;
-    private stable var accountId:Nat32 = 0;
-    private stable var lastRound:Nat32 = 0;
+    private stable var lastRound:Nat = 0;
 
     private let disitribtionPercentage:Float = 0.75;
 
@@ -98,8 +97,7 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func startDistribution(_lastRound:Nat): async () {
-        roundId := 1;
-        lastRound := Nat32.fromNat(_lastRound);
+        lastRound :=_lastRound;
         let supply = await _tokenSupply();
         let distributionSupply = Float.mul(Utils.natToFloat(supply), disitribtionPercentage);
         tokensPerRound :=  Nat.div(Utils.floatToNat(distributionSupply),_lastRound);
@@ -136,7 +134,7 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func deposit(roundId:Nat32,amount:Nat): async WICPService.TxReceipt {
-        assert(roundId <= lastRound);
+        assert(Nat32.toNat(roundId) <= lastRound);
         assert(amount > 0);
         let spender = Principal.fromActor(this);
         let treasury = Principal.fromText(Constants.treasuryCanister);
@@ -233,23 +231,23 @@ actor class Distribution(_owner:Principal) = this {
         Nat.mul(tokensPerRound,percentage);
     };
 
-    /*public query func http_request(request : Http.Request) : async Http.Response {
+    public query func http_request(request : Http.Request) : async Http.Response {
         let path = Iter.toArray(Text.tokens(request.url, #text("/")));
 
         if (path.size() == 1) {
             switch (path[0]) {
-                case ("getProposal") return _proposalResponse();
-                case ("fetchAcceptedProposals") return _fetchAcceptedProposalResponse();
-                case ("fetchRejectedProposals") return _fetchRejectedProposalResponse();
-                case ("getMemorySize") return _natResponse(_getMemorySize());
-                case ("getHeapSize") return _natResponse(_getHeapSize());
-                case ("getCycles") return _natResponse(_getCycles());
+                case ("fetchRounds") return _fetchRoundsResponse();
+                case ("getLastRound") return _natResponse(lastRound);
+                case ("getTokensPerRound") return _natResponse(tokensPerRound);
+                case ("getStart") {
+                    let nat64 = Nat64.fromIntWrap(start);
+                    return _natResponse(Nat64.toNat(nat64));
+                };
                 case (_) return return Http.BAD_REQUEST();
             };
         } else if (path.size() == 2) {
             switch (path[0]) {
-                case ("fetchVotes") return _fetchVoteResponse(path[1]);
-                case ("getVote") return _voteResponse(path[1]);
+                case ("fetchRound") return _fetchRoundResponse(Utils.textToNat32(path[1]));
                 case (_) return return Http.BAD_REQUEST();
             };
         }else {
@@ -268,130 +266,89 @@ actor class Distribution(_owner:Principal) = this {
         };
     };
 
-    private func _fetchAcceptedProposals(): [Proposal] {
-        var results:[Proposal] = [];
-        for ((id,request) in accepted.entries()) {
-        results := Array.append(results,[request]);
+    private func _fetchRounds(): [Round] {
+        var results:[Round] = [];
+        for ((id,round) in rounds.entries()) {
+            let _rounds = Iter.toArray(Trie.iter<Principal, Round>(round));
+            for ((id,deposit) in _rounds.vals()) {
+                results := Array.append(results,[deposit]);
+            };
         };
         results;
     };
 
-    private func _fetchRejectedProposals(): [Proposal] {
-        var results:[Proposal] = [];
-        for ((id,request) in rejected.entries()) {
-        results := Array.append(results,[request]);
-        };
-        results;
-    };
-
-    private func _fetchVotes(proposalId:Nat32): [Vote] {
-        var results:[Vote] = [];
-        let exist = proposalVotes.get(proposalId);
-        switch(exist){
-        case(?exist){
-            exist;
-        };
-        case(null){
-            [];
-        }
-        };
-    };
-
-    private func _fetchAcceptedProposalResponse() : Http.Response {
-        let _proposals =  _fetchAcceptedProposals();
+    private func _fetchRoundsResponse() : Http.Response {
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
+        let _map : HashMap.HashMap<Nat32, Nat> = HashMap.HashMap<Nat32, Nat>(
+            0,
+            Nat32.equal,
+            func (a : Nat32) : Nat32 {a},
+        );
+        let _rounds =  _fetchRounds();
         var result:[JSON] = [];
 
-        for(proposal in _proposals.vals()) {
-        let json = Utils._proposalToJson(proposal);
-        result := Array.append(result,[json]);
-        };
-
-        let json = #Array(result);
-        let blob = Text.encodeUtf8(JSON.show(json));
-        let response : Http.Response = {
-            status_code = 200;
-            headers = [("Content-Type", "application/json")];
-            body = blob;
-            streaming_strategy = null;
-        };
-    };
-
-    private func _fetchRejectedProposalResponse() : Http.Response {
-        let _proposals =  _fetchRejectedProposals();
-        var result:[JSON] = [];
-
-        for(proposal in _proposals.vals()) {
-        let json = Utils._proposalToJson(proposal);
-        result := Array.append(result,[json]);
-        };
-
-        let json = #Array(result);
-        let blob = Text.encodeUtf8(JSON.show(json));
-        let response : Http.Response = {
-            status_code = 200;
-            headers = [("Content-Type", "application/json")];
-            body = blob;
-            streaming_strategy = null;
-        };
-    };
-
-    private func _fetchVoteResponse(value:Text) : Http.Response {
-        let id = Utils.textToNat32(value);
-        let _votes =  _fetchVotes(id);
-        var result:[JSON] = [];
-
-        for(obj in _votes.vals()) {
-        let json = Utils._voteToJson(obj);
-        result := Array.append(result,[json]);
-        };
-
-        let json = #Array(result);
-        let blob = Text.encodeUtf8(JSON.show(json));
-        let response : Http.Response = {
-            status_code = 200;
-            headers = [("Content-Type", "application/json")];
-            body = blob;
-            streaming_strategy = null;
-        };
-    };
-
-    private func _proposalResponse() : Http.Response {
-        let exist = proposal;
-        switch(exist){
-        case(?exist){
-            let json = Utils._proposalToJson(exist);
-            let blob = Text.encodeUtf8(JSON.show(json));
-            let response : Http.Response = {
-                status_code = 200;
-                headers = [("Content-Type", "application/json")];
-                body = blob;
-                streaming_strategy = null;
+        for(_round in _rounds.vals()){
+            let exist = _map.get(_round.id);
+            switch(exist){
+                case(?exist){
+                    _map.put(_round.id, _round.deposit + exist);
+                };
+                case(null){
+                    _map.put(_round.id, _round.deposit);
+                };
             };
         };
-        case(null){
-            return Http.NOT_FOUND();
+
+        for((id, amount) in _map.entries()){
+            map.put("day", #Number(Nat32.toNat(id)));
+            map.put("amount", #Number(amount));
         };
+
+        let json = #Object(map);
+        let blob = Text.encodeUtf8(JSON.show(json));
+        let response : Http.Response = {
+            status_code = 200;
+            headers = [("Content-Type", "application/json")];
+            body = blob;
+            streaming_strategy = null;
         };
     };
 
-    private func _voteResponse(value : Text) : Http.Response {
-        let id = Utils.textToNat32(value);
-        let exist = votes.get(id);
-        switch(exist){
-        case(?exist){
-            let json = Utils._voteToJson(exist);
-            let blob = Text.encodeUtf8(JSON.show(json));
-            let response : Http.Response = {
-                status_code = 200;
-                headers = [("Content-Type", "application/json")];
-                body = blob;
-                streaming_strategy = null;
+    private func _fetchRoundResponse(round:Nat32) : Http.Response {
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
+        let _rounds =  _fetchRounds();
+        var result:[JSON] = [];
+
+        let exist = rounds.get(round);
+
+        switch(exist) {
+            case(?exist){
+                let _rounds = Iter.toArray(Trie.iter<Principal, Round>(exist));
+                for ((id,_round) in _rounds.vals()) {
+                    map.put("owner", #String(Principal.toText(_round.holder)));
+                    map.put("amount", #Number(_round.deposit));
+                };
+            };
+            case(null){
+
             };
         };
-        case(null){
-            return Http.NOT_FOUND();
-        };
-        };
-    };*/
 
+        let json = #Object(map);
+        let blob = Text.encodeUtf8(JSON.show(json));
+        let response : Http.Response = {
+            status_code = 200;
+            headers = [("Content-Type", "application/json")];
+            body = blob;
+            streaming_strategy = null;
+        };
+    };
 };

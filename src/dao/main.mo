@@ -325,7 +325,7 @@ actor class Dao() = this {
       return #Err(#InsufficientAllowance);
     };
     //tax tokens
-    let receipt = await TokenService.chargeTax(caller,proposalCost);
+    let receipt = await TokenService.chargeTax(caller,power);
     switch(receipt){
       case(#Ok(value)){
         let vote = {
