@@ -351,6 +351,27 @@ module {
                 map.put("executed", #Boolean(value.executed));
                 map.put("timeStamp", #Number(value.timeStamp))
             };
+            case(#proposalCost(value)){
+               
+                let executedAt = value.executedAt;
+                switch(executedAt){
+                    case(?executedAt){
+                        map.put("executedAt", #Number(executedAt));
+                    };
+                    case(null) {
+
+                    };
+                };
+                map.put("id", #Number(Nat32.toNat(value.id)));
+                map.put("creator", #String(value.creator));
+                map.put("title", #String(value.title));
+                map.put("description", #String(value.description));
+                map.put("amount", #Number(value.amount));
+                map.put("yay", #Number(value.yay));
+                map.put("nay", #Number(value.nay));
+                map.put("executed", #Boolean(value.executed));
+                map.put("timeStamp", #Number(value.timeStamp))
+            };
         };
         #Object(map);
     };
