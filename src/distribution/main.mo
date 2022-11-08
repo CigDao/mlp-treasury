@@ -35,8 +35,8 @@ actor class Distribution(_owner:Principal) = this {
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;
     private stable var lastRound:Nat = 0;
-    private stable var isStart = false;
     private let disitribtionPercentage:Float = 0.75;
+    private stable var isStart = false;
 
     private type ErrorMessage = { #message : Text;};
     private type JSON = JSON.JSON;
@@ -97,6 +97,7 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func startDistribution(_lastRound:Nat): async () {
+        assert(_owner == caller);
         assert(isStart == false);
         isStart := true;
         lastRound :=_lastRound;
