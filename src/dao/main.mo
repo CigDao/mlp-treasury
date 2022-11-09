@@ -87,6 +87,14 @@ actor class Dao() = this {
       Cycles.balance();
   };
 
+  public query func getProposal(): async ?Proposal {
+      proposal;
+  };
+
+  public query func getExecutionTime(): async Int {
+      executionTime;
+  };
+
   private func _getMemorySize(): Nat {
       let size = Prim.rts_memory_size();
       size;
@@ -101,12 +109,11 @@ actor class Dao() = this {
       Cycles.balance();
   };
 
-  public shared({caller}) func executeProposal(): async TokenService.TxReceipt {
+  public shared({caller}) func executeProposal(): async () {
     let exist = proposal;
     let now = Time.now();
     let controller = Principal.fromText(Constants.controllerCanister);
     if(caller != controller){
-     return #Err(#Unauthorized);
     };
     switch(exist){
       case(?exist){
@@ -114,40 +121,38 @@ actor class Dao() = this {
           case(#upgrade(value)){
             let timeCheck = value.timeStamp + executionTime;
             if(timeCheck <= now){
-              ignore _tally();
+              await _tally();
             }
           };
           case(#treasury(value)){
             let timeCheck = value.timeStamp + executionTime;
             if(timeCheck <= now){
-              ignore _tally();
+              await _tally();
             }
           };
           case(#treasuryAction(value)){
             let timeCheck = value.timeStamp + executionTime;
             if(timeCheck <= now){
-              ignore _tally();
+              await _tally();
             }
           };
           case(#tax(value)){
             let timeCheck = value.timeStamp + executionTime;
             if(timeCheck <= now){
-              ignore _tally();
+              await _tally();
             }
           };
           case(#proposalCost(value)){
             let timeCheck = value.timeStamp + executionTime;
             if(timeCheck <= now){
-              ignore _tally();
+              await _tally();
             }
           }
         }
       };
       case(null){
-        return #Err(#Other("No Active Proposals"));
       }
     };
-    #Ok(0);
   };
 
   public shared({caller}) func createProposal(request:ProposalRequest): async TokenService.TxReceipt {
@@ -170,10 +175,10 @@ actor class Dao() = this {
     //verify hash if upgrading wasm
     switch(request){
       case(#upgrade(obj)){
-        let hash = Utils._hash(obj.wasm);
+        /*let hash = Utils._hash(obj.wasm);
         if(hash != obj.hash){
           return #Err(#Other("Invalid wasm. Wasm hash does not match source"));
-        };
+        };*/
 
         //tax tokens
         let receipt = await TokenService.chargeTax(caller,proposalCost);
@@ -541,29 +546,14 @@ actor class Dao() = this {
     };
   };
 
-  private func _tally(): async () {
+  public func _tally(): async () {
     switch(proposal){
       case(?proposal){
         switch(proposal){
           case(#upgrade(value)){
             if(value.yay > value.nay) {
               //accepted
-              accepted.put(value.id,#upgrade(value));
-              //make call to controller cansiter that should be blackedholed to upgrade this canister
-              switch(value.canister){
-                  case(#dao){
-                      ignore ControllerService.upgradeDao(value.wasm,value.args);
-                  };
-                  case(#controller) {
-                      ignore _upgradeController(value.wasm,value.args, Constants.controllerCanister);
-                  };
-                  case(#treasury) {
-                     ignore _upgradeController(value.wasm,value.args, Constants.treasuryCanister);
-                  };
-                  case(#community) {
-                     ignore _upgradeController(value.wasm,value.args, Constants.communityCanister);
-                  };
-              };
+              accepted.put(value.id,#upgrade(value));      
             }else {
               rejected.put(value.id,#upgrade(value));
               //rejected
