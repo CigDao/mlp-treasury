@@ -30,14 +30,76 @@ actor class Controller() = this {
         };
     };*/
     
-    public func testExecute(): async DaoService.TxReceipt {
+    
+    public func testExecute(): async () {
+        let exist = await DaoService.getProposal();
+        let executionTime  = await DaoService.getExecutionTime();
+        let now = Time.now();
         await DaoService.executeProposal();
+        switch(exist){
+            case(?exist){
+                switch(exist){
+                    case(#upgrade(value)){
+                        let timeCheck = value.timeStamp + executionTime;
+                        if(timeCheck <= now){
+                            if(value.yay > value.nay) {
+                                switch(value.canister){
+                                    case(#dao){
+                                        let canister = Principal.fromText(Constants.daoCanister);
+                                        try {
+                                            return await _upgrade(canister,value.wasm,value.args);
+                                        }
+                                        catch e {
+                                            throw(e)
+                                        }
+                                        
+                                    };
+                                    case(#controller) {
+                                        /*let canister = Principal.fromText(Constants.controllerCanister);
+                                        try {
+                                            return await _upgrade(canister,value.wasm,value.args);
+                                        }
+                                        catch e {
+                                            throw(e)
+                                        }*/
+                                    };
+                                    case(#treasury) {
+                                        let canister = Principal.fromText(Constants.treasuryCanister);
+                                        try {
+                                            return await _upgrade(canister,value.wasm,value.args);
+                                        }
+                                        catch e {
+                                            throw(e)
+                                        }
+                                    };
+                                    case(#community) {
+                                        let canister = Principal.fromText(Constants.communityCanister);
+                                        try {
+                                            return await _upgrade(canister,value.wasm,value.args);
+                                        }
+                                        catch e {
+                                            throw(e)
+                                        }
+                                    };
+                                };
+                            }else {
+                                //rejected
+                            }
+                        };
+                    };
+                    case(#treasury(value)){};
+                    case(#treasuryAction(value)){};
+                    case(#tax(value)){};
+                    case(#proposalCost(value)){};
+                }
+            };
+            case(null){
+    
+            }
+        };
     };
 
-    public shared({caller}) func upgradeDao(wasm:Blob,arg:Blob): async () {
-        let controller = Principal.fromText(Constants.controllerCanister);
-        assert(caller == controller);
-        let canisterId = Principal.fromText(Constants.daoCanister);
-        await CansiterService.CanisterUtils().installCode(canisterId, arg, wasm);
+    private func _upgrade(canister:Principal,wasm:Blob,arg:Blob): async () {
+        await CansiterService.CanisterUtils().installCode(canister, arg, wasm);
     };
 }
