@@ -204,6 +204,67 @@ actor class Distribution(_owner:Principal) = this {
         result;
     };
 
+    public shared({caller}) func testDeposit(roundId:Nat32,amount:Nat): async WICPService.TxReceipt {
+        assert(Nat32.toNat(roundId) <= lastRound);
+        assert(amount > 0);
+        /*let spender = Principal.fromActor(this);
+        let treasury = Principal.fromText(Constants.treasuryCanister);
+        let allowance = await WICPService.canister.allowance(caller,spender);
+        if(allowance < amount){
+            return #Err(#InsufficientAllowance);
+        };
+        let result = await WICPService.canister.transferFrom(caller,treasury,amount);*/
+        let key = { hash = Principal.hash(caller); key = caller};
+        let exist = rounds.get(roundId);
+        switch(exist){
+            //checks if round exist
+            case(?exist) {
+                //check if principal already exist for the round
+                let roundObject = Trie.get<Principal, Round>(exist,key,Principal.equal);
+                switch(roundObject){
+                    case(?roundObject){
+                        let round = {
+                            id = roundId;
+                            holder = caller;
+                            deposit = roundObject.deposit + amount;
+                            recieved = 0;
+                        };
+
+                        let _temp = Trie.put<Principal, Round>(exist,key,Principal.equal,round).0;
+                        rounds.put(roundId,_temp);
+                        _addToRound(roundId, amount);
+                    };
+                    case(null){
+                        let round = {
+                            id = roundId;
+                            holder = caller;
+                            deposit = amount;
+                            recieved = 0;
+                        };
+
+                        let _temp = Trie.put<Principal, Round>(exist,key,Principal.equal,round).0;
+                        rounds.put(roundId,_temp);
+                        _addToRound(roundId, amount);
+                    };
+                };
+            };
+            case(null){
+                let round = {
+                    id = roundId;
+                    holder = caller;
+                    deposit = amount;
+                    recieved = 0;
+                };
+
+                let _temp = Trie.put<Principal, Round>(Trie.empty(),key,Principal.equal,round).0;
+                rounds.put(roundId,_temp);
+                _addToRound(roundId, amount);
+            };
+        };
+
+        #Ok(0);
+    };
+
     private func _tokenSupply(): async Nat {
         await TokenService.totalSupply();
     };
@@ -251,6 +312,7 @@ actor class Distribution(_owner:Principal) = this {
         } else if (path.size() == 2) {
             switch (path[0]) {
                 case ("fetchRound") return _fetchRoundResponse(Utils.textToNat32(path[1]));
+                case ("fetchRoundsByPrincipal") return _fetchRoundsByPrincipalResponse(Principal.fromText(path[1]));
                 case (_) return return Http.BAD_REQUEST();
             };
         }else {
@@ -280,12 +342,20 @@ actor class Distribution(_owner:Principal) = this {
         results;
     };
 
+    private func _fetchRoundsByPrincipal(principal:Principal): [Round] {
+        var results:[Round] = [];
+        for ((id,round) in rounds.entries()) {
+            let _rounds = Iter.toArray(Trie.iter<Principal, Round>(round));
+            for ((id,deposit) in _rounds.vals()) {
+                if(deposit.holder == principal){
+                    results := Array.append(results,[deposit]);
+                };
+            };
+        };
+        results;
+    };
+
     private func _fetchRoundsResponse() : Http.Response {
-        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
-            0,
-            Text.equal,
-            Text.hash,
-        );
         let _map : HashMap.HashMap<Nat32, Nat> = HashMap.HashMap<Nat32, Nat>(
             0,
             Nat32.equal,
@@ -307,11 +377,59 @@ actor class Distribution(_owner:Principal) = this {
         };
 
         for((id, amount) in _map.entries()){
+            let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+                0,
+                Text.equal,
+                Text.hash,
+            );
             map.put("day", #Number(Nat32.toNat(id)));
             map.put("amount", #Number(amount));
+            result := Array.append(result,[#Object(map)]);
         };
 
-        let json = #Object(map);
+        let json = #Array(result);
+        let blob = Text.encodeUtf8(JSON.show(json));
+        let response : Http.Response = {
+            status_code = 200;
+            headers = [("Content-Type", "application/json")];
+            body = blob;
+            streaming_strategy = null;
+        };
+    };
+
+    private func _fetchRoundsByPrincipalResponse(principal:Principal) : Http.Response {
+        let _map : HashMap.HashMap<Nat32, Nat> = HashMap.HashMap<Nat32, Nat>(
+            0,
+            Nat32.equal,
+            func (a : Nat32) : Nat32 {a},
+        );
+        let _rounds = _fetchRoundsByPrincipal(principal);
+        var result:[JSON] = [];
+
+        for(_round in _rounds.vals()){
+            let exist = _map.get(_round.id);
+            switch(exist){
+                case(?exist){
+                    _map.put(_round.id, _round.deposit + exist);
+                };
+                case(null){
+                    _map.put(_round.id, _round.deposit);
+                };
+            };
+        };
+
+        for((id, amount) in _map.entries()){
+            let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+                0,
+                Text.equal,
+                Text.hash,
+            );
+            map.put("day", #Number(Nat32.toNat(id)));
+            map.put("amount", #Number(amount));
+            result := Array.append(result,[#Object(map)]);
+        };
+
+        let json = #Array(result);
         let blob = Text.encodeUtf8(JSON.show(json));
         let response : Http.Response = {
             status_code = 200;
@@ -322,11 +440,6 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     private func _fetchRoundResponse(round:Nat32) : Http.Response {
-        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
-            0,
-            Text.equal,
-            Text.hash,
-        );
         let _rounds =  _fetchRounds();
         var result:[JSON] = [];
 
@@ -336,8 +449,14 @@ actor class Distribution(_owner:Principal) = this {
             case(?exist){
                 let _rounds = Iter.toArray(Trie.iter<Principal, Round>(exist));
                 for ((id,_round) in _rounds.vals()) {
+                    let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+                        0,
+                        Text.equal,
+                        Text.hash,
+                    );
                     map.put("owner", #String(Principal.toText(_round.holder)));
                     map.put("amount", #Number(_round.deposit));
+                    result := Array.append(result,[#Object(map)]);
                 };
             };
             case(null){
@@ -345,7 +464,7 @@ actor class Distribution(_owner:Principal) = this {
             };
         };
 
-        let json = #Object(map);
+        let json = #Array(result);
         let blob = Text.encodeUtf8(JSON.show(json));
         let response : Http.Response = {
             status_code = 200;
