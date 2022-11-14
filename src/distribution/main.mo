@@ -30,7 +30,8 @@ import ControllerService "../services/ControllerService";
 
 actor class Distribution(_owner:Principal) = this {
 
-    private let roundTime:Int = 86400000000000;
+    //private let roundTime:Nat = 86400000000000;
+    private let roundTime:Nat = 60000000000 * 15;
     private stable var lastRoundEnd:Int = 0;
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;
@@ -48,6 +49,9 @@ actor class Distribution(_owner:Principal) = this {
 
     private stable var roundSizeEntries : [(Nat32,Nat)] = [];
     private var roundSize = HashMap.fromIter<Nat32,Nat>(roundSizeEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
+
+    private stable var claimedRoundEntries : [(Nat32,[Principal])] = [];
+    private var claimedRounds = HashMap.fromIter<Nat32,[Principal]>(claimedRoundEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
 
     system func preupgrade() {
         roundEntries := Iter.toArray(rounds.entries());
@@ -108,9 +112,10 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func claim(round:Nat32): async TokenService.TxReceipt {
+        let isClaimed = _isClaimed(round, caller);
         let endOfRound:Int = roundTime * Nat32.toNat(round) + start;
         let now = Time.now();
-        if(now < endOfRound){
+        if(now < endOfRound or isClaimed){
             return #Err(#Unauthorized);
         };
         let key = { hash = Principal.hash(caller); key = caller};
@@ -120,10 +125,13 @@ actor class Distribution(_owner:Principal) = this {
                 let roundObject = Trie.get<Principal, Round>(exist,key,Principal.equal);
                 switch(roundObject){
                     case(?roundObject){
+                        _setClaimed(round, caller);
                         let total = _roundTotal(round);
-                        let payout = roundPayout(total,roundObject.deposit);
+                        let payout = roundPayout(Utils.natToFloat(total),Utils.natToFloat(roundObject.deposit));
                         //transfer amount 
-                        return await TokenService.transfer(caller,payout);
+                        ignore await TokenService.transfer(caller,Utils.floatToNat(payout));
+                        let recieved = Utils.floatToNat(payout);
+                        #Ok(recieved);
                     };
                     case(null){
                         return #Err(#Unauthorized);
@@ -137,7 +145,10 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func deposit(roundId:Nat32,amount:Nat): async WICPService.TxReceipt {
-        assert(Nat32.toNat(roundId) <= lastRound);
+        let isEnd = _isEnd(roundId);
+        if(isEnd == false){
+           return #Err(#Unauthorized);
+        };
         assert(amount > 0);
         let spender = Principal.fromActor(this);
         let treasury = Principal.fromText(Constants.treasuryCanister);
@@ -204,8 +215,82 @@ actor class Distribution(_owner:Principal) = this {
         result;
     };
 
+    public shared({caller}) func realICPDeposit(roundId:Nat32,amount:Nat): async WICPService.TxReceipt {
+        let isEnd = _isEnd(roundId);
+        if(isEnd == false){
+           return #Err(#Unauthorized);
+        };
+        assert(amount > 0);
+        let spender = Principal.fromActor(this);
+        let allowance = await WICPService.canister.allowance(caller,spender);
+        if(allowance < amount){
+            return #Err(#InsufficientAllowance);
+        };
+        let result = await WICPService.canister.transferFrom(caller,spender,amount);
+        let key = { hash = Principal.hash(caller); key = caller};
+        switch(result){
+            case(#Ok(value)){
+                ignore await WICPService.canister.transfer(caller,amount);
+                let exist = rounds.get(roundId);
+                switch(exist){
+                    //checks if round exist
+                    case(?exist) {
+                        //check if principal already exist for the round
+                        let roundObject = Trie.get<Principal, Round>(exist,key,Principal.equal);
+                        switch(roundObject){
+                            case(?roundObject){
+                                let round = {
+                                    id = roundId;
+                                    holder = caller;
+                                    deposit = roundObject.deposit + amount;
+                                    recieved = 0;
+                                };
+
+                                let _temp = Trie.put<Principal, Round>(exist,key,Principal.equal,round).0;
+                                rounds.put(roundId,_temp);
+                                _addToRound(roundId, amount);
+                            };
+                            case(null){
+                                let round = {
+                                    id = roundId;
+                                    holder = caller;
+                                    deposit = amount;
+                                    recieved = 0;
+                                };
+
+                                let _temp = Trie.put<Principal, Round>(exist,key,Principal.equal,round).0;
+                                rounds.put(roundId,_temp);
+                                _addToRound(roundId, amount);
+                            };
+                        };
+                    };
+                    case(null){
+                        let round = {
+                            id = roundId;
+                            holder = caller;
+                            deposit = amount;
+                            recieved = 0;
+                        };
+
+                        let _temp = Trie.put<Principal, Round>(Trie.empty(),key,Principal.equal,round).0;
+                        rounds.put(roundId,_temp);
+                        _addToRound(roundId, amount);
+                    };
+                };
+            };
+            case(#Err(value)){
+               
+            };
+        };
+
+        result;
+    };
+
     public shared({caller}) func testDeposit(roundId:Nat32,amount:Nat): async WICPService.TxReceipt {
-        assert(Nat32.toNat(roundId) <= lastRound);
+        let isEnd = _isEnd(roundId);
+        if(isEnd == false){
+           return #Err(#Unauthorized);
+        };
         assert(amount > 0);
         /*let spender = Principal.fromActor(this);
         let treasury = Principal.fromText(Constants.treasuryCanister);
@@ -265,6 +350,11 @@ actor class Distribution(_owner:Principal) = this {
         #Ok(0);
     };
 
+    private func _isEnd(round:Nat32): Bool {
+        let endTime = start + (Nat32.toNat(round) * roundTime);
+        endTime > Time.now();
+    };
+
     private func _tokenSupply(): async Nat {
         await TokenService.totalSupply();
     };
@@ -284,15 +374,53 @@ actor class Distribution(_owner:Principal) = this {
 
     private func _roundTotal(round:Nat32): Nat {
         var amount:Nat = 0;
-        for ((id, value) in roundSize.entries()){
-            amount := amount + value;
+        let exist = roundSize.get(round);
+        switch(exist){
+            case(?exist){
+                return exist;
+            };
+            case(null){
+                return 0;
+            };
         };
-        amount;
     };
 
-    private func roundPayout(total:Nat,deposit:Nat): Nat {
-        let percentage = Nat.div(deposit,total);
-        Nat.mul(tokensPerRound,percentage);
+    private func _setClaimed(round:Nat32, principal:Principal) {
+        let exist = claimedRounds.get(round);
+        switch(exist){
+            case(?exist){
+                let calimed = Array.append(exist,[principal]);
+                claimedRounds.put(round,calimed);
+            };
+            case(null) {
+                claimedRounds.put(round,[principal]);
+            };
+        };
+    };
+
+    private func _isClaimed(round:Nat32, principal:Principal): Bool {
+        let exist = claimedRounds.get(round);
+        switch(exist){
+            case(?exist){
+                let calimed = Array.find(exist,func (e:Principal):Bool{e == principal});
+                switch(calimed){
+                    case(?calimed){
+                        return true;
+                    };
+                    case(null){
+                        return false;
+                    };
+                };
+            };
+            case(null) {
+                return false;
+            };
+        };
+    };
+
+    private func roundPayout(total:Float,deposit:Float): Float {
+        let percentage = deposit/total;
+        Utils.natToFloat(tokensPerRound)*percentage
     };
 
     public query func http_request(request : Http.Request) : async Http.Response {
@@ -307,6 +435,7 @@ actor class Distribution(_owner:Principal) = this {
                     let nat64 = Nat64.fromIntWrap(start);
                     return _natResponse(Nat64.toNat(nat64));
                 };
+                case ("getRoundTime") return _natResponse(roundTime);
                 case (_) return return Http.BAD_REQUEST();
             };
         } else if (path.size() == 2) {

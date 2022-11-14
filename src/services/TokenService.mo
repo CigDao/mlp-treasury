@@ -29,6 +29,10 @@ module {
         await canister.transfer(to, amount);
     };
 
+    public func communityTransfer(to:Principal, amount:Nat): async TxReceipt {
+        await canister.communityTransfer(to, amount);
+    };
+
     public func transferFrom(from:Principal, to:Principal, amount:Nat): async TxReceipt {
         await canister.transferFrom(from, to, amount);
     };
@@ -52,5 +56,6 @@ module {
         chargeTax : shared (Principal, Nat) -> async (TxReceipt);
         updateTransactionPercentage : shared (Float) -> async ();
         totalSupply : shared query () -> async Nat;
+        communityTransfer: (Principal, Nat)  -> async TxReceipt;
     };
 }
