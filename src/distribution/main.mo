@@ -36,7 +36,7 @@ actor class Distribution(_owner:Principal) = this {
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;
     private stable var lastRound:Nat = 0;
-    private let disitribtionPercentage:Float = 0.75;
+    private let disitribtionPercentage:Float = 0.2;
     private stable var isStart = false;
 
     private type ErrorMessage = { #message : Text;};
@@ -442,6 +442,7 @@ actor class Distribution(_owner:Principal) = this {
             switch (path[0]) {
                 case ("fetchRound") return _fetchRoundResponse(Utils.textToNat32(path[1]));
                 case ("fetchRoundsByPrincipal") return _fetchRoundsByPrincipalResponse(Principal.fromText(path[1]));
+                case ("fetchClaimedRounds") return _fetchClaimedRoundsResponse(Principal.fromText(path[1]));
                 case (_) return return Http.BAD_REQUEST();
             };
         }else {
@@ -456,6 +457,38 @@ actor class Distribution(_owner:Principal) = this {
             status_code        = 200;
             headers            = [("Content-Type", "application/json")];
             body               = blob;
+            streaming_strategy = null;
+        };
+    };
+
+    private func _fetchClaimedRounds(caller:Principal): [Nat32] {
+        var results:[Nat32] = [];
+        for ((id,principals) in claimedRounds.entries()) {
+            let exist = Array.find(principals,func(e:Principal):Bool {e == caller});
+            switch(exist){
+                case(?exist){
+                    results := Array.append(results,[id]);
+                };
+                case(null){
+
+                };
+            };
+        };
+        results;
+    };
+
+    private func _fetchClaimedRoundsResponse(caller:Principal): Http.Response {
+        let _rounds = _fetchClaimedRounds(caller);
+        var result:[JSON] = [];
+        for(id in _rounds.vals()) {
+            result := Array.append(result,[#Number(Nat32.toNat(id))]);
+        };
+        let json = #Array(result);
+        let blob = Text.encodeUtf8(JSON.show(json));
+        let response : Http.Response = {
+            status_code = 200;
+            headers = [("Content-Type", "application/json")];
+            body = blob;
             streaming_strategy = null;
         };
     };
