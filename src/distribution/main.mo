@@ -31,7 +31,7 @@ import ControllerService "../services/ControllerService";
 actor class Distribution(_owner:Principal) = this {
 
     //private let roundTime:Nat = 86400000000000;
-    private let roundTime:Nat = 60000000000 * 15;
+    private let roundTime:Nat = 60000000000;
     private stable var lastRoundEnd:Int = 0;
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;

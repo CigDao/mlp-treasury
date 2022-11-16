@@ -269,7 +269,8 @@ actor class Dao() = this {
         }
       };
       case(#tax(obj)){
-        let receipt = await TokenService.chargeTax(caller,proposalCost);
+        #Err(#Unauthorized);
+        /*let receipt = await TokenService.chargeTax(caller,proposalCost);
         switch(receipt){
           case(#Ok(value)){
             //create proposal
@@ -293,7 +294,7 @@ actor class Dao() = this {
           case(#Err(value)){
             #Err(value);
           };
-        }
+        }*/
       };
       case(#proposalCost(obj)){
         let receipt = await TokenService.chargeTax(caller,proposalCost);
@@ -465,7 +466,7 @@ actor class Dao() = this {
             }
           };
           case(#tax(value)) {
-            if(yay){
+            /*if(yay){
               var _proposal = {
                 id = value.id;
                 creator = value.creator;
@@ -493,7 +494,7 @@ actor class Dao() = this {
                 timeStamp = Time.now();
               };
               proposal := ?#tax(_proposal);
-            }
+            }*/
           };
           case(#proposalCost(value)) {
             if(yay){
@@ -632,7 +633,7 @@ actor class Dao() = this {
             }
           };
           case(#tax(value)) {
-            if(value.yay > value.nay) {
+            /*if(value.yay > value.nay) {
               //accepted
               var _proposal = {
                 id = value.id;
@@ -683,7 +684,7 @@ actor class Dao() = this {
                 timeStamp = value.timeStamp;
               };
               rejected.put(value.id,#tax(_proposal));
-            }
+            }*/
           };
           case(#proposalCost(value)) {
             if(value.yay > value.nay) {
