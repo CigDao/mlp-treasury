@@ -41,8 +41,10 @@ module {
 
     public func floatToNat(value:Float): Nat {
         let int = Float.toInt(value);
-        return textToNat(Int.toText(int))
+        let text = Int.toText(int);
+        return textToNat(text);
     };
+    
     public func includesText(string: Text, term: Text): Bool {
         let stringArray = Iter.toArray<Char>(toLowerCase(string).chars());
         let termArray = Iter.toArray<Char>(toLowerCase(term).chars());
