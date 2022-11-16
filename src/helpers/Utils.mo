@@ -36,15 +36,12 @@ module {
     private type Vote = Vote.Vote;
 
     public func natToFloat(value:Nat): Float {
-        //var nat64 = Nat64.fromNat(value);
-        //var int64 = Int64.fromNat64(nat64);
         return Float.fromInt(value)
     };
 
     public func floatToNat(value:Float): Nat {
         let int = Float.toInt(value);
-        let nat64 = Nat64.fromIntWrap(int);
-        return Nat64.toNat(nat64)
+        return textToNat(Int.toText(int))
     };
     public func includesText(string: Text, term: Text): Bool {
         let stringArray = Iter.toArray<Char>(toLowerCase(string).chars());
@@ -80,11 +77,6 @@ module {
         Int32.toInt(int32);
     };
 
-    public func natToInt(value: Nat): Int {
-        let nat64 = Nat64.fromNat(value);
-        let int64 = Int64.fromNat64(nat64);
-        Int64.toInt(int64);
-    };
 
     public func textToNat32( txt : Text) : Nat32 {
         assert(txt.size() > 0);
@@ -95,6 +87,20 @@ module {
             let charToNum = Char.toNat32(v)-48;
             assert(charToNum >= 0 and charToNum <= 9);
             num := num * 10 +  charToNum;          
+        };
+
+        num;
+    };
+
+    public func textToNat( txt : Text) : Nat {
+        assert(txt.size() > 0);
+        let chars = txt.chars();
+
+        var num : Nat = 0;
+        for (v in chars){
+            let charToNum = Char.toNat32(v)-48;
+            assert(charToNum >= 0 and charToNum <= 9);
+            num := num * 10 +  Nat32.toNat(charToNum);          
         };
 
         num;

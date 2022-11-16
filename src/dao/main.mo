@@ -1,6 +1,7 @@
 import Prim "mo:prim";
 import Iter "mo:base/Iter";
 import Principal "mo:base/Principal";
+import Float "mo:base/Float";
 import Nat "mo:base/Nat";
 import Nat32 "mo:base/Nat32";
 import Array "mo:base/Array";
