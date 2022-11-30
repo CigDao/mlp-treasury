@@ -29,7 +29,7 @@ module {
         await canister.updateMaxHoldingPercentage(value);
     };
 
-    private let canister = actor(Constants.communityCanister) : actor { 
+    private let canister = actor(Constants.taxCollectorCanister) : actor { 
         updateTransactionPercentage : shared (Float) -> async ();
         updateBurnPercentage : shared (Float) -> async ();
         updateReflectionPercentage : shared (Float) -> async ();

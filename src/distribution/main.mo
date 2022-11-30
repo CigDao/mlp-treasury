@@ -23,15 +23,16 @@ import Error "mo:base/Error";
 import Trie "mo:base/Trie";
 import TokenService "../services/TokenService";
 import WICPService "../services/WICPService";
-import CommunityService "../services/CommunityService";
+import TaxCollectorService "../services/TaxCollectorService";
 import CansiterService "../services/CansiterService";
 import TreasuryService "../services/TreasuryService";
 import ControllerService "../services/ControllerService";
+import TopUpService "../services/TopUpService";
 
 actor class Distribution(_owner:Principal) = this {
 
-    private let roundTime:Nat = 86400000000000;
-    //private let roundTime:Nat = 60000000000;
+    //private let roundTime:Nat = 86400000000000;
+    private let roundTime:Nat = 60000000000;
     private stable var lastRoundEnd:Int = 0;
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;
@@ -100,6 +101,12 @@ actor class Distribution(_owner:Principal) = this {
         Cycles.balance();
     };
 
+    private func _topUp(): async () {
+      if (_getCycles() <= Constants.cyclesThreshold){
+          await TopUpService.topUp();
+      }
+    };
+
     public shared({caller}) func startDistribution(_lastRound:Nat): async () {
         assert(_owner == caller);
         assert(isStart == false);
@@ -112,6 +119,7 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func claim(round:Nat32): async TokenService.TxReceipt {
+        ignore _topUp();
         let isClaimed = _isClaimed(round, caller);
         let endOfRound:Int = roundTime * Nat32.toNat(round) + start;
         let now = Time.now();
@@ -145,6 +153,7 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     public shared({caller}) func deposit(roundId:Nat32,amount:Nat): async WICPService.TxReceipt {
+        ignore _topUp();
         let isEnd = _isEnd(roundId);
         if(isEnd == false){
            return #Err(#Unauthorized);

@@ -22,10 +22,11 @@ import Cycles "mo:base/ExperimentalCycles";
 import Result "mo:base/Result";
 import Error "mo:base/Error";
 import TokenService "../services/TokenService";
-import CommunityService "../services/CommunityService";
+import TaxCollectorService "../services/TaxCollectorService";
 import CansiterService "../services/CansiterService";
 import TreasuryService "../services/TreasuryService";
 import ControllerService "../services/ControllerService";
+import TopUpService "../services/TopUpService";
 
 actor class Dao() = this {
 
@@ -111,7 +112,14 @@ actor class Dao() = this {
       Cycles.balance();
   };
 
+  private func _topUp(): async () {
+    if (_getCycles() <= Constants.cyclesThreshold){
+        await TopUpService.topUp();
+    }
+  };
+
   public shared({caller}) func executeProposal(): async () {
+    ignore _topUp();
     let exist = proposal;
     let now = Time.now();
     let controller = Principal.fromText(Constants.controllerCanister);
@@ -158,6 +166,7 @@ actor class Dao() = this {
   };
 
   public shared({caller}) func createProposal(request:ProposalRequest): async TokenService.TxReceipt {
+    ignore _topUp();
     switch(proposal){
       case(?proposal){
         #Err(#ActiveProposal);
@@ -327,6 +336,7 @@ actor class Dao() = this {
   };
 
   public shared({caller}) func vote(proposalId:Nat32, power:Nat, yay:Bool): async TokenService.TxReceipt {
+    ignore _topUp();
     //verify the amount of tokens is approved
     let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
     if(power > allowance){

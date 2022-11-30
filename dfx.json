@@ -15,6 +15,10 @@
     "distribution": {
       "main": "src/distribution/main.mo",
       "type": "motoko"
+    },
+    "topUp": {
+      "main": "src/topUp/main.mo",
+      "type": "motoko"
     }
   },
   "defaults": {

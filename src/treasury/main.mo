@@ -18,6 +18,7 @@ import Result "mo:base/Result";
 import Error "mo:base/Error";
 import TokenService "../services/TokenService";
 import Constants "../Constants";
+import TopUpService "../services/TopUpService";
 
 actor class Treasury() = this{
 
@@ -74,7 +75,14 @@ actor class Treasury() = this{
       Cycles.balance();
   };
 
+  private func _topUp(): async () {
+      if (_getCycles() <= Constants.cyclesThreshold){
+          await TopUpService.topUp();
+      }
+  };
+
   public shared({caller}) func createRequest(request : RequestDraft) : async Nat32 {
+    ignore _topUp();
     let isMember = _isMember(caller);
     assert(isMember.value);
     var currentId = requestId;
@@ -143,13 +151,14 @@ actor class Treasury() = this{
   };
 
   public shared({caller}) func approveRequest(id : Nat32) : async Result.Result<(), ErrorMessage> {
+    ignore _topUp();
     let isMember = _isMember(caller);
     assert(isMember.value);
     let request = requests.get(id);
     switch(request){
       case(?request){
         ignore _approveRequest(request,Principal.toText(caller),isMember.power);
-        ignore submitRequest(id);
+        ignore _submitRequest(id);
         #ok();
       };
       case(null){
@@ -158,9 +167,7 @@ actor class Treasury() = this{
     };
   };
 
-  private func submitRequest(id : Nat32) : async Result.Result<(?TokenService.TxReceipt), ErrorMessage> {
-    /*let isMember = _isMember(caller);
-    assert(isMember.value);*/
+  private func _submitRequest(id : Nat32) : async Result.Result<(?TokenService.TxReceipt), ErrorMessage> {
     let request = requests.get(id);
     switch(request){
       case(?request){
