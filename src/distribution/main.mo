@@ -31,8 +31,8 @@ import TopUpService "../services/TopUpService";
 
 actor class Distribution(_owner:Principal) = this {
 
-    private let roundTime:Nat = 86400000000000;
-    //private let roundTime:Nat = 60000000000;
+    //private let roundTime:Nat = 86400000000000;
+    private let roundTime:Nat = 60000000000;
     private stable var lastRoundEnd:Int = 0;
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;
@@ -225,6 +225,7 @@ actor class Distribution(_owner:Principal) = this {
     };
 
     /*public shared({caller}) func realICPDeposit(roundId:Nat32,amount:Nat): async WICPService.TxReceipt {
+        ignore _topUp();
         let isEnd = _isEnd(roundId);
         if(isEnd == false){
            return #Err(#Unauthorized);

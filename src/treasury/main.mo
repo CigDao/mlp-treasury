@@ -16,6 +16,7 @@ import Response "../models/Response";
 import Cycles "mo:base/ExperimentalCycles";
 import Result "mo:base/Result";
 import Error "mo:base/Error";
+import WICPService "../services/WICPService";
 import TokenService "../services/TokenService";
 import Constants "../Constants";
 import TopUpService "../services/TopUpService";
@@ -99,6 +100,7 @@ actor class Treasury() = this{
       case(#transfer(value)){
           let result = {
             id = id;
+            token = value.token;
             amount = value.amount;
             recipient = value.recipient;
             approvals = approvals;
@@ -167,7 +169,7 @@ actor class Treasury() = this{
     };
   };
 
-  private func _submitRequest(id : Nat32) : async Result.Result<(?TokenService.TxReceipt), ErrorMessage> {
+  private func _submitRequest(id : Nat32) : async Result.Result<(), ErrorMessage> {
     let request = requests.get(id);
     switch(request){
       case(?request){
@@ -176,7 +178,7 @@ actor class Treasury() = this{
           switch(request){
             case(#transfer(value)){
                 let result = await _transfer(value);
-                return #ok(?result);
+                return #ok();
             };
             case(#addMember(value)){
                 _addMember(value)
@@ -187,8 +189,9 @@ actor class Treasury() = this{
             case(#threshold(value)){
                 _setThreshold(value);
             };
-        };
-          #ok(null);
+          };
+          requests.delete(id);
+          #ok();
         }else{
           #err(#message("Not enough power"));
         }
@@ -218,8 +221,15 @@ actor class Treasury() = this{
     threshold := _threshold.power;
   };
 
-  private func _transfer(transfer : Transfer): async TokenService.TxReceipt {
-    await TokenService.transfer(Principal.fromText(transfer.recipient),transfer.amount);
+  private func _transfer(transfer : Transfer): async () {
+    switch(transfer.token){
+      case(#yc){
+        ignore await TokenService.transfer(Principal.fromText(transfer.recipient),transfer.amount);
+      };
+      case(#icp){
+        ignore await WICPService.canister.transfer(Principal.fromText(transfer.recipient),transfer.amount);
+      }
+    };
   };
 
   private func _getTotalPower():Nat {

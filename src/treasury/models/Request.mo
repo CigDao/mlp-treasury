@@ -12,6 +12,7 @@ module {
 
     public type Transfer = {
         id:Nat32;
+        token:Token;
         amount:Nat;
         recipient:Text;
         approvals:TrieMap.TrieMap<Text, Nat>;
@@ -48,6 +49,7 @@ module {
     };
 
     public type TransferDraft = {
+        token:Token;
         amount:Nat;
         recipient:Text;
         description:Text;
@@ -60,5 +62,10 @@ module {
     public type ThresholdDraft = {
         power:Nat;
         description:Text;
+    };
+
+    public type Token = {
+        #yc;
+        #icp;
     };
 }
