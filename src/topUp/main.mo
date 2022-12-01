@@ -21,7 +21,7 @@ import Constants "../Constants";
 
 actor class TopUp() = this{
 
-    private let amount:Nat64 = 20000000000000;
+    private let amount:Nat64 = 5000000000000;
     
     public shared({caller}) func topUp(): async () {
         let canister = Principal.toText(caller);

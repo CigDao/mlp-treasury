@@ -49,8 +49,8 @@ actor class Controller() = this {
       }
     };
     
-    public func testExecute(): async () {
-        ignore _topUp();
+    //public func testExecute(): async () {
+        /*ignore _topUp();
         let exist = await DaoService.getProposal();
         let executionTime  = await DaoService.getExecutionTime();
         let now = Time.now();
@@ -73,7 +73,7 @@ actor class Controller() = this {
                                         }
                                         
                                     };
-                                    case(#controller) {
+                                    case(#controller) {*/
                                         /*let canister = Principal.fromText(Constants.controllerCanister);
                                         try {
                                             return await _upgrade(canister,value.wasm,value.args);
@@ -81,7 +81,7 @@ actor class Controller() = this {
                                         catch e {
                                             throw(e)
                                         }*/
-                                    };
+                                    /*};
                                     case(#treasury) {
                                         let canister = Principal.fromText(Constants.treasuryCanister);
                                         try {
@@ -115,8 +115,8 @@ actor class Controller() = this {
             case(null){
     
             }
-        };
-    };
+        };*/
+    //};
 
     private func _upgrade(canister:Principal,wasm:Blob,arg:Blob): async () {
         await CansiterService.CanisterUtils().installCode(canister, arg, wasm);
