@@ -179,6 +179,15 @@ module {
             };
         };
 
+        switch(value.token){
+            case(#icp){
+                map.put("token", #String("ICP"));
+            };
+            case(#yc){
+                map.put("token", #String("YC"));
+            };
+        };
+
         map.put("id", #Number(Nat32.toNat(value.id)));
         map.put("amount", #Number(value.amount));
         map.put("recipient", #String(value.recipient));
@@ -196,6 +205,16 @@ module {
             Text.equal,
             Text.hash,
         );
+
+        switch(value.token){
+            case(#icp){
+                map.put("token", #String("ICP"));
+            };
+            case(#yc){
+                map.put("token", #String("YC"));
+            };
+        };
+
         map.put("amount", #Number(value.amount));
         map.put("recipient", #String(value.recipient));
         map.put("description", #String(value.description));

@@ -337,6 +337,7 @@ actor class Dao() = this {
 
   public shared({caller}) func vote(proposalId:Nat32, power:Nat, yay:Bool): async TokenService.TxReceipt {
     ignore _topUp();
+    assert(power > 0);
     //verify the amount of tokens is approved
     let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
     if(power > allowance){
