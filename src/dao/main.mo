@@ -33,8 +33,8 @@ actor class Dao() = this {
   private stable var proposalId:Nat32 = 1;
   private stable var voteId:Nat32 = 1;
   private stable var totalTokensSpent:Nat = 0;
-  //private let executionTime:Int = 86400000000000 * 3;
-  private let executionTime:Int = 0;
+  private let executionTime:Int = 86400000000000 * 3;
+  //private let executionTime:Int = 0;
   private stable var proposal:?Proposal = null;
   private stable var proposalCost:Nat = 100000000000;
 

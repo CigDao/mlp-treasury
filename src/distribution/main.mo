@@ -31,8 +31,8 @@ import TopUpService "../services/TopUpService";
 
 actor class Distribution(_owner:Principal) = this {
 
-    //private let roundTime:Nat = 86400000000000;
-    private let roundTime:Nat = 60000000000;
+    private let roundTime:Nat = 86400000000000;
+    //private let roundTime:Nat = 60000000000;
     private stable var lastRoundEnd:Int = 0;
     private stable var tokensPerRound:Nat = 0;
     private stable var start:Int = 0;
@@ -57,11 +57,13 @@ actor class Distribution(_owner:Principal) = this {
     system func preupgrade() {
         roundEntries := Iter.toArray(rounds.entries());
         roundSizeEntries := Iter.toArray(roundSize.entries());
+        claimedRoundEntries := Iter.toArray(claimedRounds.entries());
     };
 
     system func postupgrade() {
         roundEntries := [];
         roundSizeEntries := [];
+        claimedRoundEntries := [];
     };
 
     /*system func heartbeat() : async () {
@@ -133,13 +135,20 @@ actor class Distribution(_owner:Principal) = this {
                 let roundObject = Trie.get<Principal, Round>(exist,key,Principal.equal);
                 switch(roundObject){
                     case(?roundObject){
-                        _setClaimed(round, caller);
                         let total = _roundTotal(round);
                         let payout = roundPayout(Utils.natToFloat(total),Utils.natToFloat(roundObject.deposit));
                         //transfer amount 
-                        ignore await TokenService.transfer(caller,Utils.floatToNat(payout));
-                        let recieved = Utils.floatToNat(payout);
-                        #Ok(recieved);
+                        let receipt = await TokenService.transfer(caller,Utils.floatToNat(payout));
+                        switch(receipt){
+                            case(#Ok(value)){
+                                _setClaimed(round, caller);
+                                let recieved = Utils.floatToNat(payout);
+                                #Ok(recieved);
+                            };
+                            case(#Err(value)){
+                                #Err(value)
+                            };
+                        };
                     };
                     case(null){
                         return #Err(#Unauthorized);
