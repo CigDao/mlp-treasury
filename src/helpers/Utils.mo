@@ -19,7 +19,7 @@ import Proposal "../dao/models/Proposal";
 import Vote "../dao/models/Vote";
 import SHA "./SHA";
 import Blob "mo:base/Blob";
-import Hex "mo:encoding/Hex";
+import Hex "./Hex";
 import TrieMap "mo:base/TrieMap";
 import Nat8 "mo:base/Nat8";
 
