@@ -17,7 +17,6 @@ import JSON "JSON";
 import Request "../treasury/models/Request";
 import Proposal "../dao/models/Proposal";
 import Vote "../dao/models/Vote";
-//import SHA256 "mo:crypto/SHA/SHA256";
 import SHA "./SHA";
 import Blob "mo:base/Blob";
 import Hex "mo:encoding/Hex";
