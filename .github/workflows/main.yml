@@ -14,7 +14,8 @@ jobs:
       env:
         DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
     - run: |
-        dfx identity new action
+        chmod +w /home/runner/.config/dfx/identity/action/identity.pem
+        echo ${{ secrets.DFX_IDENTITY_PEM }} > /home/runner/.config/dfx/identity/action/identity.pem
         dfx identity use action
         dfx deploy --network ic dao --no-wallet
     - uses: MCJack123/ghaction-generate-release-hashes@v3
