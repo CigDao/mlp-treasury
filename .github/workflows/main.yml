@@ -19,6 +19,7 @@ jobs:
       with:
         identity: ${{ secrets.DFX_IDENTITY }}
         wallets: ${{ secrets.DFX_WALLETS }}
+        dfx_params: --no-wallet
     - uses: MCJack123/ghaction-generate-release-hashes@v3
       with:
         hash-type: sha256
