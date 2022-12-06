@@ -10,10 +10,12 @@ jobs:
     - uses: aviate-labs/setup-dfx@v0.2.3
       with:
         dfx-version: 0.12.0
+      with:
+        vessel-version: 0.6.29
+      - run: for i in src/*.mo ; do $(vessel bin)/moc $(vessel sources) --check $i ; done
       env:
         DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
     - run: |
-        dfx identity use action
         dfx deploy --network ic dao
     - uses: MCJack123/ghaction-generate-release-hashes@v3
       with:
