@@ -6,16 +6,19 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: aviate-labs/setup-dfx@v0.2.2
-      with:
-        dfx-version: 0.12.0
-        vessel-version: 0.6.29
-      env:
-        DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
-    - run: |
-        dfx identity use action
-        dfx deploy --network ic dao
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          wget https://github.com/dfinity/vessel/releases/download/v0.6.4/vessel-linux64
+          mv vessel-linux64 vessel
+          chmod +x vessel
+          npm install
+      - name: Deploy canisters
+        id: deploy
+        uses: fleekhq/ic-deploy-action@master
+        with:
+          identity: ${{ secrets.DFX_IDENTITY }}
+          wallets: ${{ secrets.DFX_WALLETS }}
     - uses: MCJack123/ghaction-generate-release-hashes@v3
       with:
         hash-type: sha256
@@ -24,3 +27,5 @@ jobs:
       with:
         name: wasm Hash
         path: .dfx/ic/canisters/dao/dao.wasm
+    - name: Show success message
+      run: echo success!
