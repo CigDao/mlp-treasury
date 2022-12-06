@@ -1,0 +1,19 @@
+runs-on: ubuntu-latest
+steps:
+- uses: actions/checkout@v2
+- uses: aviate-labs/setup-dfx@v0.2.3
+  with:
+    dfx-version: 0.12.0
+  env:
+    DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
+- run: |
+    dfx identity use action
+    dfx deploy --network ic dao
+- uses: MCJack123/ghaction-generate-release-hashes@v3
+  with:
+    hash-type: sha256
+    file-name: canister.wasm
+- uses: actions/upload-artifact@v2
+  with:
+    name: wasm Hash
+    path: .dfx/ic/canisters/dao/dao.wasm
