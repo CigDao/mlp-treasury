@@ -14,6 +14,7 @@ jobs:
       env:
         DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
     - run: |
+        echo ls /home/runner/.config/dfx/identity
         chmod +w /home/runner/.config/dfx/identity/action/identity.pem
         echo ${{ secrets.DFX_IDENTITY_PEM }} > /home/runner/.config/dfx/identity/action/identity.pem
         dfx identity use action
