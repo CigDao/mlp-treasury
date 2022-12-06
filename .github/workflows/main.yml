@@ -14,6 +14,7 @@ jobs:
       env:
         DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
     - run: |
+        dfx identity import action ${{ secrets.DFX_IDENTITY_PEM }}
         dfx identity use action
         dfx deploy --network ic dao --no-wallet
     - uses: MCJack123/ghaction-generate-release-hashes@v3
