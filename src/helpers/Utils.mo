@@ -3,6 +3,7 @@ import Nat64 "mo:base/Nat64";
 import Nat "mo:base/Nat";
 import Float "mo:base/Float";
 import Array "mo:base/Array";
+import List "mo:base/List";
 import HashMap "mo:base/HashMap";
 import Iter "mo:base/Iter";
 import Text "mo:base/Text";
@@ -16,10 +17,13 @@ import JSON "JSON";
 import Request "../treasury/models/Request";
 import Proposal "../dao/models/Proposal";
 import Vote "../dao/models/Vote";
-import SHA256 "mo:crypto/SHA/SHA256";
+//import SHA256 "mo:crypto/SHA/SHA256";
+import SHA "./SHA";
 import Blob "mo:base/Blob";
 import Hex "mo:encoding/Hex";
 import TrieMap "mo:base/TrieMap";
+import Nat8 "mo:base/Nat8";
+
 
 module {
 
@@ -485,8 +489,8 @@ module {
         #Object(map);
     };
 
-    public func _hash(blob: Blob): Text {
-        let sum256 = SHA256.sum(Blob.toArray(blob));
-        Hex.encode(sum256);
+    public func hash(blob: Blob): Text {
+        let sum256 = SHA.fromBlob(#sha256,blob);
+        Hex.encode(Blob.toArray(sum256));
     };
 }

@@ -186,10 +186,10 @@ actor class Dao() = this {
     //verify hash if upgrading wasm
     switch(request){
       case(#upgrade(obj)){
-        /*let hash = Utils._hash(obj.wasm);
+        let hash = Utils.hash(obj.wasm);
         if(hash != obj.hash){
           return #Err(#Other("Invalid wasm. Wasm hash does not match source"));
-        };*/
+        };
 
         //tax tokens
         let receipt = await TokenService.chargeTax(caller,proposalCost);
