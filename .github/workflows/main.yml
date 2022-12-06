@@ -7,18 +7,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - uses: aviate-labs/setup-dfx@v0.2.3
+    - uses: aviate-labs/setup-dfx@v0.2.2
       with:
         dfx-version: 0.12.0
         vessel-version: 0.6.29
       env:
         DFX_IDENTITY_PEM: ${{ secrets.DFX_IDENTITY_PEM }}
     - run: |
-        echo ls /home/runner/.config/dfx/identity
-        chmod +w /home/runner/.config/dfx/identity/action/identity.pem
-        echo ${{ secrets.DFX_IDENTITY_PEM }} > /home/runner/.config/dfx/identity/action/identity.pem
         dfx identity use action
-        dfx deploy --network ic dao --no-wallet
+        dfx deploy --network ic dao
     - uses: MCJack123/ghaction-generate-release-hashes@v3
       with:
         hash-type: sha256
