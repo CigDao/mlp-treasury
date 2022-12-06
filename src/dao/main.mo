@@ -179,10 +179,11 @@ actor class Dao() = this {
 
   private func _createProposal(caller:Principal, request:ProposalRequest): async TokenService.TxReceipt {
     //verify the amount of tokens is approved
-    let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
+    ///ADD THIS BACK
+    /*let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
     if(proposalCost > allowance){
       return #Err(#InsufficientAllowance);
-    };
+    };*/
     //verify hash if upgrading wasm
     switch(request){
       case(#upgrade(obj)){
@@ -192,7 +193,9 @@ actor class Dao() = this {
         };
 
         //tax tokens
-        let receipt = await TokenService.chargeTax(caller,proposalCost);
+        ///ADD THIS BACK
+        //let receipt = await TokenService.chargeTax(caller,proposalCost);
+        let receipt = #Ok(1);
         switch(receipt){
           case(#Ok(value)){
             //create proposal
@@ -339,12 +342,15 @@ actor class Dao() = this {
     ignore _topUp();
     assert(power > 0);
     //verify the amount of tokens is approved
-    let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
+    ///ADD THIS BACK
+    /*let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
     if(power > allowance){
       return #Err(#InsufficientAllowance);
-    };
+    };*/
     //tax tokens
-    let receipt = await TokenService.chargeTax(caller,power);
+    ///ADD THIS BACK
+    //let receipt = await TokenService.chargeTax(caller,power);
+    let receipt = #Ok(1);
     switch(receipt){
       case(#Ok(value)){
         let vote = {
@@ -591,7 +597,8 @@ actor class Dao() = this {
               };
               accepted.put(value.id,#treasury(_proposal));
               //make call to treasury cansiter that should be blackedhole
-              ignore TreasuryService.approveRequest(value.treasuryRequestId);
+              //Add This Back
+              //ignore TreasuryService.approveRequest(value.treasuryRequestId);
             }else {
               var _proposal = {
                 id = value.id;
