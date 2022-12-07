@@ -395,7 +395,7 @@ actor class Dao() = this {
                 nay = value.nay;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#upgrade(_proposal);
             }else {
@@ -413,7 +413,7 @@ actor class Dao() = this {
                 nay = value.nay + power;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#upgrade(_proposal);
             }
@@ -431,7 +431,7 @@ actor class Dao() = this {
                 nay = value.nay;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#treasury(_proposal);
             }else {
@@ -446,7 +446,7 @@ actor class Dao() = this {
                 nay = value.nay + power;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#treasury(_proposal);
             }
@@ -463,7 +463,7 @@ actor class Dao() = this {
                 nay = value.nay;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#treasuryAction(_proposal);
             }else {
@@ -477,7 +477,7 @@ actor class Dao() = this {
                 nay = value.nay + power;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#treasuryAction(_proposal);
             }
@@ -494,7 +494,7 @@ actor class Dao() = this {
                 nay = value.nay;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#tax(_proposal);
             }else {
@@ -508,7 +508,7 @@ actor class Dao() = this {
                 nay = value.nay + power;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#tax(_proposal);
             }*/
@@ -525,7 +525,7 @@ actor class Dao() = this {
                 nay = value.nay;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#proposalCost(_proposal);
             }else {
@@ -539,7 +539,7 @@ actor class Dao() = this {
                 nay = value.nay + power;
                 executed = value.executed;
                 executedAt = value.executedAt;
-                timeStamp = Time.now();
+                timeStamp = value.timeStamp;
               };
               proposal := ?#proposalCost(_proposal);
             }
