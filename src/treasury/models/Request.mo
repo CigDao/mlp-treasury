@@ -4,10 +4,24 @@ import TrieMap "mo:base/TrieMap";
 module {
     
     public type Request = {
+        #swap:Transfer;
+        #withdrawLiquidity:WithdrawLiquidity;
+        #addLiquidity:Transfer;
         #transfer:Transfer;
         #addMember:Member;
         #removeMember:Member;
         #threshold:Threshold;
+    };
+
+    public type WithdrawLiquidity = {
+        id:Nat32;
+        amount:Nat;
+        approvals:TrieMap.TrieMap<Text, Nat>;
+        executed:Bool;
+        createdAt:Time.Time;
+        executedAt:?Time.Time;
+        description:Text;
+        error:?Text;
     };
 
     public type Transfer = {
@@ -20,6 +34,7 @@ module {
         createdAt:Time.Time;
         executedAt:?Time.Time;
         description:Text;
+        error:?Text;
     };
     public type Member = {
         id:Nat32;
@@ -30,6 +45,7 @@ module {
         executed:Bool;
         createdAt:Time.Time;
         executedAt:?Time.Time;
+        error:?Text;
     };
     public type Threshold = {
         id:Nat32;
@@ -39,14 +55,25 @@ module {
         executed:Bool;
         createdAt:Time.Time;
         executedAt:?Time.Time;
+        error:?Text;
     };
 
     public type RequestDraft = {
+        #swap:TransferDraft;
+        #withdrawLiquidity:WithdrawLiquidityDraft;
+        #addLiquidity:TransferDraft;
         #transfer:TransferDraft;
         #addMember:MemberDraft;
         #removeMember:MemberDraft;
         #threshold:ThresholdDraft;
     };
+
+    public type WithdrawLiquidityDraft = {
+        amount:Nat;
+        recipient:Text;
+        description:Text;
+    };
+
 
     public type TransferDraft = {
         token:Token;

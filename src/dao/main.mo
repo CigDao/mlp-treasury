@@ -33,8 +33,8 @@ actor class Dao() = this {
   private stable var proposalId:Nat32 = 1;
   private stable var voteId:Nat32 = 1;
   private stable var totalTokensSpent:Nat = 0;
-  private let executionTime:Int = 86400000000000 * 3;
-  //private let executionTime:Int = 0;
+  //private let executionTime:Int = 86400000000000 * 3;
+  private let executionTime:Int = 0;
   private stable var proposal:?Proposal = null;
   private stable var proposalCost:Nat = 100000000000;
 
@@ -92,6 +92,14 @@ actor class Dao() = this {
 
   public query func getProposal(): async ?Proposal {
       proposal;
+  };
+
+  public query func fetchAcceptedProposals(): async [Proposal] {
+      _fetchAcceptedProposals();
+  };
+
+  public query func fetchRejectedProposals(): async [Proposal] {
+      _fetchRejectedProposals();
   };
 
   public query func getExecutionTime(): async Int {

@@ -19,9 +19,13 @@ import Proposal "../dao/models/Proposal";
 import Vote "../dao/models/Vote";
 import SHA "./SHA";
 import Blob "mo:base/Blob";
+import Time "mo:base/Time";
 import Hex "./Hex";
 import TrieMap "mo:base/TrieMap";
 import Nat8 "mo:base/Nat8";
+import SwapService "../services/SwapService";
+import TokenService "../services/TokenService";
+import WICPService "../services/WICPService";
 
 
 module {
@@ -30,11 +34,13 @@ module {
     private type Request = Request.Request;
     private type RequestDraft = Request.RequestDraft;
     private type Transfer = Request.Transfer;
+    private type WithdrawLiquidity = Request.WithdrawLiquidity;
     private type Proposal = Proposal.Proposal;
     private type Member = Request.Member;
     private type Threshold = Request.Threshold;
     private type TransferDraft = Request.TransferDraft;
     private type MemberDraft = Request.MemberDraft;
+    private type WithdrawLiquidityDraft = Request.WithdrawLiquidityDraft;
     private type ThresholdDraft = Request.ThresholdDraft;
     private type Vote = Vote.Vote;
 
@@ -125,6 +131,15 @@ module {
             case(#threshold(value)){
                 _thresholdToJson(value);
             };
+            case(#swap(value)){
+                _transferToJson(value);
+            };
+            case(#withdrawLiquidity(value)){
+                _withdrawToJson(value);
+            };
+            case(#addLiquidity(value)){
+                _transferToJson(value);
+            };
         };
     };
 
@@ -141,6 +156,15 @@ module {
             };
             case(#threshold(value)){
                 _thresholdDraftToJson(value);
+            };
+            case(#swap(value)){
+                _transferDraftToJson(value);
+            };
+            case(#withdrawLiquidity(value)){
+                _withdrawDraftToJson(value);
+            };
+            case(#addLiquidity(value)){
+                _transferDraftToJson(value);
             };
         };
     };
@@ -191,9 +215,55 @@ module {
             };
         };
 
+        switch(value.error){
+            case(?exist){
+                map.put("error", #String(exist));
+            };
+            case(null) {
+                map.put("error", #Null);
+            };
+        };
+
         map.put("id", #Number(Nat32.toNat(value.id)));
         map.put("amount", #Number(value.amount));
         map.put("recipient", #String(value.recipient));
+        map.put("approvals", #Array(approvals));
+        map.put("executed", #Boolean(value.executed));
+        map.put("createdAt", #Number(value.createdAt));
+        map.put("description", #String(value.description));
+
+        #Object(map);
+    };
+
+    private func _withdrawToJson(value: WithdrawLiquidity): JSON {
+        var approvals:[JSON] = _approvalToJson(value.approvals);
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
+
+        let executedAt = value.executedAt;
+        switch(executedAt){
+            case(?executedAt){
+                map.put("executedAt", #Number(executedAt));
+            };
+            case(null) {
+
+            };
+        };
+
+        switch(value.error){
+            case(?exist){
+                map.put("error", #String(exist));
+            };
+            case(null) {
+                map.put("error", #Null);
+            };
+        };
+
+        map.put("id", #Number(Nat32.toNat(value.id)));
+        map.put("amount", #Number(value.amount));
         map.put("approvals", #Array(approvals));
         map.put("executed", #Boolean(value.executed));
         map.put("createdAt", #Number(value.createdAt));
@@ -217,6 +287,19 @@ module {
                 map.put("token", #String("YC"));
             };
         };
+
+        map.put("amount", #Number(value.amount));
+        map.put("recipient", #String(value.recipient));
+        map.put("description", #String(value.description));
+
+        #Object(map);
+    };
+    private func _withdrawDraftToJson(value: WithdrawLiquidityDraft): JSON {
+        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
+            0,
+            Text.equal,
+            Text.hash,
+        );
 
         map.put("amount", #Number(value.amount));
         map.put("recipient", #String(value.recipient));
@@ -424,6 +507,15 @@ module {
             };
         };
 
+        switch(value.error){
+            case(?exist){
+                map.put("error", #String(exist));
+            };
+            case(null) {
+                map.put("error", #Null);
+            };
+        };
+
         map.put("id", #Number(Nat32.toNat(value.id)));
         map.put("principal", #String(value.principal));
         map.put("power", #Number(value.power));
@@ -467,6 +559,15 @@ module {
             };
         };
 
+        switch(value.error){
+            case(?exist){
+                map.put("error", #String(exist));
+            };
+            case(null) {
+                map.put("error", #Null);
+            };
+        };
+
         map.put("id", #Number(Nat32.toNat(value.id)));
         map.put("power", #Number(value.power));
         map.put("description", #String(value.description));
@@ -486,6 +587,252 @@ module {
         map.put("power", #Number(value.power));
         map.put("description", #String(value.description));
         #Object(map);
+    };
+
+    public func swapTxReceiptToText(value: SwapService.TxReceipt): Text {
+        switch(value){
+            case(#Ok(value)){
+                ""
+            };
+            case(#Err(value)){
+                switch(value){
+                    case(#InsufficientAllowance){
+                        "InsufficientAllowance"
+                    };
+                    case(#InsufficientBalance){
+                        "InsufficientBalance"
+                    };
+                    case(#InsufficientPoolBalance){
+                        "InsufficientPoolBalance"
+                    };
+                    case(#ErrorOperationStyle){
+                        "ErrorOperationStyle"
+                    };
+                    case(#Unauthorized){
+                        "Unauthorized"
+                    };
+                    case(#LedgerTrap){
+                        "LedgerTrap"
+                    };
+                    case(#ErrorTo){
+                        "ErrorTo"
+                    };
+                    case(#Other(value)){
+                        value
+                    };
+                    case(#BlockUsed){
+                        "BlockUsed"
+                    };
+                    case(#AmountTooSmall){
+                        "AmountTooSmall"
+                    };
+                    case(#Slippage(value)){
+                        "Slippage: " #Nat.toText(value)
+                    };
+                }
+            };
+        }
+    };
+
+    public func ycTxReceiptToText(value: TokenService.TxReceipt): Text {
+        switch(value){
+            case(#Ok(value)){
+                ""
+            };
+            case(#Err(value)){
+                switch(value){
+                    case(#InsufficientAllowance){
+                        "InsufficientAllowance"
+                    };
+                    case(#InsufficientBalance){
+                        "InsufficientBalance"
+                    };
+                    case(#ErrorOperationStyle){
+                        "ErrorOperationStyle"
+                    };
+                    case(#Unauthorized){
+                        "Unauthorized"
+                    };
+                    case(#LedgerTrap){
+                        "LedgerTrap"
+                    };
+                    case(#ErrorTo){
+                        "ErrorTo"
+                    };
+                    case(#Other(value)){
+                        value
+                    };
+                    case(#BlockUsed){
+                        "BlockUsed"
+                    };
+                    case(#ActiveProposal){
+                        "ActiveProposal"
+                    };
+                    case(#AmountTooSmall){
+                        "AmountTooSmall"
+                    };
+                }
+            };
+        }
+    };
+
+    public func wicpTxReceiptToText(value: WICPService.TxReceipt): Text {
+        switch(value){
+            case(#Ok(value)){
+                ""
+            };
+            case(#Err(value)){
+                switch(value){
+                    case(#InsufficientAllowance){
+                        "InsufficientAllowance"
+                    };
+                    case(#InsufficientBalance){
+                        "InsufficientBalance"
+                    };
+                    case(#ErrorOperationStyle){
+                        "ErrorOperationStyle"
+                    };
+                    case(#Unauthorized){
+                        "Unauthorized"
+                    };
+                    case(#NoRound){
+                        "NoRound"
+                    };
+                    case(#LedgerTrap){
+                        "LedgerTrap"
+                    };
+                    case(#ErrorTo){
+                        "ErrorTo"
+                    };
+                    case(#Other){
+                        "Other"
+                    };
+                    case(#BlockUsed){
+                        "BlockUsed"
+                    };
+                    case(#FetchRateFailed){
+                        "FetchRateFailed"
+                    };
+                    case(#NotifyDfxFailed){
+                        "NotifyDfxFailed"
+                    };
+                    case(#UnexpectedCyclesResponse){
+                        "UnexpectedCyclesResponse"
+                    };
+                    case(#AmountTooSmall){
+                        "AmountTooSmall"
+                    };
+                    case(#InsufficientXTCFee){
+                        "InsufficientXTCFee"
+                    };
+                }
+            };
+        }
+    };
+
+    public func updateRequest(request:Request,executed:Bool,error:?Text): Request {
+        let now = Time.now();
+        switch(request){
+            case(#transfer(value)){
+                let result = {
+                    id = value.id;
+                    token = value.token;
+                    amount = value.amount;
+                    recipient = value.recipient;
+                    approvals = value.approvals;
+                    executed = executed;
+                    createdAt = value.createdAt;
+                    executedAt = ?now;
+                    description = value.description;
+                    error = error;
+                };
+                #transfer(result);
+            };
+            case(#addMember(value)){
+                let result = {
+                    id = value.id;
+                    principal = value.principal;
+                    power = value.power;
+                    description = value.description;
+                    approvals = value.approvals;
+                    executed = executed;
+                    createdAt = value.createdAt;
+                    executedAt = ?now;
+                    error = error;
+                };
+                #addMember(result);
+            };
+            case(#removeMember(value)){
+                let result = {
+                    id = value.id;
+                    principal = value.principal;
+                    power = value.power;
+                    description = value.description;
+                    approvals = value.approvals;
+                    executed = executed;
+                    createdAt = value.createdAt;
+                    executedAt = ?now;
+                    error = error;
+                };
+                #removeMember(result);
+            };
+            case(#threshold(value)){
+                let result = {
+                    id = value.id;
+                    power = value.power;
+                    description = value.description;
+                    approvals = value.approvals;
+                    executed = executed;
+                    createdAt = value.createdAt;
+                    executedAt = ?now;
+                    error = error;
+                };
+                #threshold(result);
+            };
+            case(#swap(value)){
+                let result = {
+                    id = value.id;
+                    token = value.token;
+                    amount = value.amount;
+                    recipient = value.recipient;
+                    approvals = value.approvals;
+                    executed = executed;
+                    createdAt = value.createdAt;
+                    executedAt = ?now;
+                    description = value.description;
+                    error = error;
+                };
+                #swap(result);
+            };
+            case(#withdrawLiquidity(value)){
+                let result = {
+                    id = value.id;
+                    amount = value.amount;
+                    approvals = value.approvals;
+                    executed = executed;
+                    createdAt = value.createdAt;
+                    executedAt = ?now;
+                    description = value.description;
+                    error = error;
+                };
+                #withdrawLiquidity(result);
+            };
+            case(#addLiquidity(value)){
+                let result = {
+                    id = value.id;
+                    token = value.token;
+                    amount = value.amount;
+                    recipient = value.recipient;
+                    approvals = value.approvals;
+                    executed = executed;
+                    createdAt = value.createdAt;
+                    executedAt = ?now;
+                    description = value.description;
+                    error = error;
+                };
+                #addLiquidity(result);
+            };
+        }
     };
 
     public func hash(blob: Blob): Text {

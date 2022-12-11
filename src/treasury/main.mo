@@ -20,6 +20,7 @@ import WICPService "../services/WICPService";
 import TokenService "../services/TokenService";
 import Constants "../Constants";
 import TopUpService "../services/TopUpService";
+import SwapService "../services/SwapService";
 
 actor class Treasury() = this{
 
@@ -31,6 +32,7 @@ actor class Treasury() = this{
   private type Request = Request.Request;
   private type RequestDraft = Request.RequestDraft;
   private type Transfer = Request.Transfer;
+  private type WithdrawLiquidity = Request.WithdrawLiquidity;
   private type Member = Request.Member;
   private type Threshold = Request.Threshold;
   private type JSON = JSON.JSON;
@@ -108,6 +110,7 @@ actor class Treasury() = this{
             createdAt = Time.now();
             executedAt = null;
             description = value.description;
+            error = null;
           };
           #transfer(result);
       };
@@ -121,6 +124,7 @@ actor class Treasury() = this{
             executed = false;
             createdAt = Time.now();
             executedAt = null;
+            error = null;
           };
           #addMember(result);
       };
@@ -134,6 +138,7 @@ actor class Treasury() = this{
             executed = false;
             createdAt = Time.now();
             executedAt = null;
+            error = null;
           };
           #removeMember(result);
       };
@@ -146,8 +151,53 @@ actor class Treasury() = this{
             executed = false;
             createdAt = Time.now();
             executedAt = null;
+            error = null;
           };
           #threshold(result);
+      };
+      case(#swap(value)){
+         let result = {
+            id = id;
+            token = value.token;
+            amount = value.amount;
+            recipient = value.recipient;
+            approvals = approvals;
+            executed = false;
+            createdAt = Time.now();
+            executedAt = null;
+            description = value.description;
+            error = null;
+          };
+          #swap(result);
+      };
+      case(#withdrawLiquidity(value)){
+         let result = {
+            id = id;
+            amount = value.amount;
+            recipient = value.recipient;
+            approvals = approvals;
+            executed = false;
+            createdAt = Time.now();
+            executedAt = null;
+            description = value.description;
+            error = null;
+          };
+          #withdrawLiquidity(result);
+      };
+      case(#addLiquidity(value)){
+         let result = {
+            id = id;
+            token = value.token;
+            amount = value.amount;
+            recipient = value.recipient;
+            approvals = approvals;
+            executed = false;
+            createdAt = Time.now();
+            executedAt = null;
+            description = value.description;
+            error = null;
+          };
+          #addLiquidity(result);
       };
     }
   };
@@ -178,19 +228,87 @@ actor class Treasury() = this{
           switch(request){
             case(#transfer(value)){
                 let result = await _transfer(value);
+                switch(result){
+                  case(#ok(value)){
+                    let _request = Utils.updateRequest(request,true,null);
+                    requests.put(id,_request);
+                    return #ok()
+                  };
+                  case(#err(value)){
+                    let _request = Utils.updateRequest(request,true,?value);
+                    requests.put(id,_request);
+                    return #err(#message(value));
+                  }
+                };
                 return #ok();
             };
             case(#addMember(value)){
-                _addMember(value)
+                _addMember(value);
+                let _request = Utils.updateRequest(request,true,null);
+                requests.put(id,_request);
+                return #ok()
             };
             case(#removeMember(value)){
-                _removeMember(value)
+                _removeMember(value);
+                let _request = Utils.updateRequest(request,true,null);
+                requests.put(id,_request);
+                return #ok()
             };
             case(#threshold(value)){
                 _setThreshold(value);
+                let _request = Utils.updateRequest(request,true,null);
+                requests.put(id,_request);
+                return #ok()
+            };
+            case(#swap(value)){
+                let result = await _swap(value);
+                switch(result){
+                  case(#Ok(value)){
+                    let _request = Utils.updateRequest(request,true,null);
+                    requests.put(id,_request);
+                    return #ok()
+                  };
+                  case(#Err(value)){
+                    let err = Utils.swapTxReceiptToText(result);
+                    let _request = Utils.updateRequest(request,true,?err);
+                    requests.put(id,_request);
+                    return #err(#message(err));
+                  }
+                };
+            };
+            case(#withdrawLiquidity(value)){
+                let result = await _withdrawLiquidity(value);
+                switch(result){
+                  case(#Ok(value)){
+                    let _request = Utils.updateRequest(request,true,null);
+                    requests.put(id,_request);
+                    return #ok()
+                  };
+                  case(#Err(value)){
+                    let err = Utils.swapTxReceiptToText(result);
+                    let _request = Utils.updateRequest(request,true,?err);
+                    requests.put(id,_request);
+                    return #err(#message(err));
+                  }
+                };
+            };
+            case(#addLiquidity(value)){
+                let result = await _addLiquidity(value);
+                switch(result){
+                  case(#Ok(value)){
+                    let _request = Utils.updateRequest(request,true,null);
+                    requests.put(id,_request);
+                    return #ok()
+                  };
+                  case(#Err(value)){
+                    let err = Utils.swapTxReceiptToText(result);
+                    let _request = Utils.updateRequest(request,true,?err);
+                    requests.put(id,_request);
+                    return #err(#message(err));
+                  }
+                };
             };
           };
-          requests.delete(id);
           #ok();
         }else{
           #err(#message("Not enough power"));
@@ -202,6 +320,35 @@ actor class Treasury() = this{
     };
   };
 
+  private func _swap(value : Transfer): async SwapService.TxReceipt {
+    switch(value.token){
+      case(#yc){
+        let slippage = Utils.floatToNat(Utils.natToFloat(value.amount) - (Utils.natToFloat(value.amount) * 0.01));
+        let swap = await SwapService.canister.swapToken1(value.amount,slippage);
+      };
+      case(#icp){
+        let slippage = Utils.floatToNat(Utils.natToFloat(value.amount) - (Utils.natToFloat(value.amount) * 0.01));
+        let swap = await SwapService.canister.swapToken2(value.amount,slippage)
+      }
+    };
+  };
+
+  private func _withdrawLiquidity(value : WithdrawLiquidity): async SwapService.TxReceipt {
+    await SwapService.canister.withdraw(value.amount);
+  };
+
+  private func _addLiquidity(value : Transfer): async SwapService.TxReceipt {
+   switch(value.token){
+      case(#yc){
+        let estimate = await SwapService.canister.getEquivalentToken2Estimate(value.amount);
+        let provide = await SwapService.canister.provide(value.amount,estimate);
+      };
+      case(#icp){
+        let estimate = await SwapService.canister.getEquivalentToken1Estimate(value.amount);
+        let provide = await SwapService.canister.provide(estimate,value.amount);
+      }
+    };
+  };
 
   private func _addMember(member : Member) {
     let _member = Principal.fromText(member.principal);
@@ -221,13 +368,31 @@ actor class Treasury() = this{
     threshold := _threshold.power;
   };
 
-  private func _transfer(transfer : Transfer): async () {
+  private func _transfer(transfer : Transfer): async Result.Result<(),Text> {
     switch(transfer.token){
       case(#yc){
-        ignore await TokenService.transfer(Principal.fromText(transfer.recipient),transfer.amount);
+        let result = await TokenService.transfer(Principal.fromText(transfer.recipient),transfer.amount);
+        switch(result){
+          case(#Ok(value)){
+            #ok();
+          };
+          case(#Err(value)){
+            let err = Utils.ycTxReceiptToText(result);
+            #err(err);
+          };
+        }
       };
       case(#icp){
-        ignore await WICPService.canister.transfer(Principal.fromText(transfer.recipient),transfer.amount);
+        let result = await WICPService.canister.transfer(Principal.fromText(transfer.recipient),transfer.amount);
+        switch(result){
+          case(#Ok(value)){
+            #ok();
+          };
+          case(#Err(value)){
+            let err = Utils.wicpTxReceiptToText(result);
+            #err(err);
+          };
+        }
       }
     };
   };
@@ -258,6 +423,18 @@ actor class Treasury() = this{
         value.approvals.put(principal,power);
         #threshold(value);
       };
+      case(#swap(value)){
+        value.approvals.put(principal,power);
+        #swap(value);
+      };
+      case(#withdrawLiquidity(value)){
+        value.approvals.put(principal,power);
+        #withdrawLiquidity(value);
+      };
+      case(#addLiquidity(value)){
+        value.approvals.put(principal,power);
+        #addLiquidity(value);
+      };
     };
   };
 
@@ -280,6 +457,21 @@ actor class Treasury() = this{
         };
       };
       case(#threshold(value)){
+        for((member, power) in value.approvals.entries()){
+          _power := _power + power;
+        };
+      };
+      case(#swap(value)){
+        for((member, power) in value.approvals.entries()){
+          _power := _power + power;
+        };
+      };
+      case(#withdrawLiquidity(value)){
+        for((member, power) in value.approvals.entries()){
+          _power := _power + power;
+        };
+      };
+      case(#addLiquidity(value)){
         for((member, power) in value.approvals.entries()){
           _power := _power + power;
         };
