@@ -36,6 +36,7 @@ module {
         balanceOf: (Principal) -> async Nat;
         allowance: (Principal,Principal) -> async Nat;
         transfer: (Principal, Nat) -> async TxReceipt;
+        approve: (Principal, Nat) -> async TxReceipt;
         transferFrom: (Principal, Principal, Nat) -> async TxReceipt;
     };
 }

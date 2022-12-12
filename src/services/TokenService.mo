@@ -20,6 +20,10 @@ module {
         };
     };
 
+    public func approve(spender:Principal, amount:Nat): async TxReceipt {
+        await canister.approve(spender,amount);
+    };
+
     public func allowance(owner:Principal, spender:Principal): async Nat {
         await canister.allowance(owner, spender);
     };
@@ -56,5 +60,6 @@ module {
         updateTransactionPercentage : shared (Float) -> async ();
         totalSupply : shared query () -> async Nat;
         communityTransfer: (Principal, Nat)  -> async TxReceipt;
+        approve : shared (Principal, Nat) -> async TxReceipt;
     };
 }

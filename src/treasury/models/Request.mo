@@ -4,7 +4,7 @@ import TrieMap "mo:base/TrieMap";
 module {
     
     public type Request = {
-        #swap:Transfer;
+        #swapFor:Transfer;
         #withdrawLiquidity:WithdrawLiquidity;
         #addLiquidity:Transfer;
         #transfer:Transfer;
@@ -59,7 +59,7 @@ module {
     };
 
     public type RequestDraft = {
-        #swap:TransferDraft;
+        #swapFor:TransferDraft;
         #withdrawLiquidity:WithdrawLiquidityDraft;
         #addLiquidity:TransferDraft;
         #transfer:TransferDraft;

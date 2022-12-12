@@ -131,7 +131,7 @@ module {
             case(#threshold(value)){
                 _thresholdToJson(value);
             };
-            case(#swap(value)){
+            case(#swapFor(value)){
                 _transferToJson(value);
             };
             case(#withdrawLiquidity(value)){
@@ -157,7 +157,7 @@ module {
             case(#threshold(value)){
                 _thresholdDraftToJson(value);
             };
-            case(#swap(value)){
+            case(#swapFor(value)){
                 _transferDraftToJson(value);
             };
             case(#withdrawLiquidity(value)){
@@ -789,7 +789,7 @@ module {
                 };
                 #threshold(result);
             };
-            case(#swap(value)){
+            case(#swapFor(value)){
                 let result = {
                     id = value.id;
                     token = value.token;
@@ -802,7 +802,7 @@ module {
                     description = value.description;
                     error = error;
                 };
-                #swap(result);
+                #swapFor(result);
             };
             case(#withdrawLiquidity(value)){
                 let result = {

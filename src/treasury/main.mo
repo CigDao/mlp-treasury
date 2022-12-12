@@ -155,7 +155,7 @@ actor class Treasury() = this{
           };
           #threshold(result);
       };
-      case(#swap(value)){
+      case(#swapFor(value)){
          let result = {
             id = id;
             token = value.token;
@@ -168,7 +168,7 @@ actor class Treasury() = this{
             description = value.description;
             error = null;
           };
-          #swap(result);
+          #swapFor(result);
       };
       case(#withdrawLiquidity(value)){
          let result = {
@@ -260,8 +260,8 @@ actor class Treasury() = this{
                 requests.put(id,_request);
                 return #ok()
             };
-            case(#swap(value)){
-                let result = await _swap(value);
+            case(#swapFor(value)){
+                let result = await _swapFor(value);
                 switch(result){
                   case(#Ok(value)){
                     let _request = Utils.updateRequest(request,true,null);
@@ -320,15 +320,34 @@ actor class Treasury() = this{
     };
   };
 
-  private func _swap(value : Transfer): async SwapService.TxReceipt {
+  private func _swapFor(value : Transfer): async SwapService.TxReceipt {
+    let swapCanister = Principal.fromText(Constants.swapCanister);
     switch(value.token){
       case(#yc){
-        let slippage = Utils.floatToNat(Utils.natToFloat(value.amount) - (Utils.natToFloat(value.amount) * 0.01));
-        let swap = await SwapService.canister.swapToken1(value.amount,slippage);
+        let estimate = await SwapService.canister.getSwapToken2EstimateGivenToken1(value.amount);
+        switch(estimate){
+          case(#Ok(amount)){
+            let slippage = Utils.floatToNat(Utils.natToFloat(value.amount) - (Utils.natToFloat(value.amount) * 0.01));
+            let approve = await WICPService.canister.approve(swapCanister,amount);
+            let swap = await SwapService.canister.swapToken2(amount,slippage)
+          };
+          case(#Err(value)){
+            #Err(value)
+          }
+        };
       };
       case(#icp){
-        let slippage = Utils.floatToNat(Utils.natToFloat(value.amount) - (Utils.natToFloat(value.amount) * 0.01));
-        let swap = await SwapService.canister.swapToken2(value.amount,slippage)
+        let estimate = await SwapService.canister.getSwapToken1EstimateGivenToken2(value.amount);
+        switch(estimate){
+          case(#Ok(amount)){
+            let slippage = Utils.floatToNat(Utils.natToFloat(value.amount) - (Utils.natToFloat(value.amount) * 0.01));
+            let approve = await TokenService.approve(swapCanister,amount);
+            let swap = await SwapService.canister.swapToken1(amount,slippage);
+          };
+          case(#Err(value)){
+            #Err(value)
+          }
+        };
       }
     };
   };
@@ -423,9 +442,9 @@ actor class Treasury() = this{
         value.approvals.put(principal,power);
         #threshold(value);
       };
-      case(#swap(value)){
+      case(#swapFor(value)){
         value.approvals.put(principal,power);
-        #swap(value);
+        #swapFor(value);
       };
       case(#withdrawLiquidity(value)){
         value.approvals.put(principal,power);
@@ -461,7 +480,7 @@ actor class Treasury() = this{
           _power := _power + power;
         };
       };
-      case(#swap(value)){
+      case(#swapFor(value)){
         for((member, power) in value.approvals.entries()){
           _power := _power + power;
         };
