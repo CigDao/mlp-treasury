@@ -30,6 +30,7 @@ actor class Treasury() = this{
 
   private type ErrorMessage = { #message : Text;};
   private type Request = Request.Request;
+  private type RequestResponse = Request.RequestResponse;
   private type RequestDraft = Request.RequestDraft;
   private type Transfer = Request.Transfer;
   private type WithdrawLiquidity = Request.WithdrawLiquidity;
@@ -93,6 +94,16 @@ actor class Treasury() = this{
     let _request = _createRequest(currentId, request, caller, isMember.power);
     requests.put(currentId,_request);
     currentId;
+  };
+
+  public query func fetchRequests(): async [RequestResponse] {
+    var results:[RequestResponse] = [];
+    for ((request) in _fetchRequests().vals()) {
+      let _request = _removeApprovalsFromRequest(request);
+      results := Array.append(results,[_request]);
+    };
+    results;
+    
   };
 
   private func _createRequest(id:Nat32, request : RequestDraft, caller:Principal, power:Nat) : Request {
@@ -559,6 +570,106 @@ actor class Treasury() = this{
         results := Array.append(results,[request]);
       };
       results;
+    };
+
+    private func _removeApprovalsFromRequest(request:Request): RequestResponse {
+      switch(request){
+        case(#swapFor(value)){
+          let result = {
+            id = value.id;
+            token = value.token;
+            amount = value.amount;
+            recipient = value.recipient;
+            approvals = value.approvals;
+            executed = value.executed;
+            createdAt = value.createdAt;
+            executedAt = value.executedAt;
+            description = value.description;
+            error = value.error;
+          };
+          #swapFor(result)
+        };
+        case(#withdrawLiquidity(value)){
+          let result = {
+            id = value.id;
+            amount = value.amount;
+            executed = value.executed;
+            createdAt = value.createdAt;
+            executedAt = value.executedAt;
+            description = value.description;
+            error = value.error;
+          };
+          #withdrawLiquidity(result)
+        };
+        case(#addLiquidity(value)){
+          let result = {
+            id = value.id;
+            token = value.token;
+            amount = value.amount;
+            recipient = value.recipient;
+            approvals = value.approvals;
+            executed = value.executed;
+            createdAt = value.createdAt;
+            executedAt = value.executedAt;
+            description = value.description;
+            error = value.error;
+          };
+          #addLiquidity(result)
+        };
+        case(#transfer(value)){
+          let result = {
+            id = value.id;
+            token = value.token;
+            amount = value.amount;
+            recipient = value.recipient;
+            approvals = value.approvals;
+            executed = value.executed;
+            createdAt = value.createdAt;
+            executedAt = value.executedAt;
+            description = value.description;
+            error = value.error;
+          };
+          #transfer(result)
+        };
+        case(#addMember(value)){
+          let result = {
+            id = value.id;
+            principal = value.principal;
+            power = value.power;
+            description = value.description;
+            executed = value.executed;
+            createdAt = value.createdAt;
+            executedAt = value.executedAt;
+            error = value.error;
+          };
+          #addMember(result)
+        };
+        case(#removeMember(value)){
+          let result = {
+            id = value.id;
+            principal = value.principal;
+            power = value.power;
+            description = value.description;
+            executed = value.executed;
+            createdAt = value.createdAt;
+            executedAt = value.executedAt;
+            error = value.error;
+          };
+          #removeMember(result)
+        };
+        case(#threshold(value)){
+          let result = {
+            id = value.id;
+            power = value.power;
+            description = value.description;
+            executed = value.executed;
+            createdAt = value.createdAt;
+            executedAt = value.executedAt;
+            error = value.error;
+          };
+          #threshold(result)
+        };
+      };
     };
 
     private func _fetchRequestsResponse() : Http.Response {

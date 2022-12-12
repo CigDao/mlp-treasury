@@ -13,10 +13,30 @@ module {
         #threshold:Threshold;
     };
 
+    public type RequestResponse = {
+        #swapFor:TransferResponse;
+        #withdrawLiquidity:WithdrawLiquidityResponse;
+        #addLiquidity:TransferResponse;
+        #transfer:TransferResponse;
+        #addMember:MemberResponse;
+        #removeMember:MemberResponse;
+        #threshold:ThresholdResponse;
+    };
+
     public type WithdrawLiquidity = {
         id:Nat32;
         amount:Nat;
         approvals:TrieMap.TrieMap<Text, Nat>;
+        executed:Bool;
+        createdAt:Time.Time;
+        executedAt:?Time.Time;
+        description:Text;
+        error:?Text;
+    };
+
+    public type WithdrawLiquidityResponse = {
+        id:Nat32;
+        amount:Nat;
         executed:Bool;
         createdAt:Time.Time;
         executedAt:?Time.Time;
@@ -36,6 +56,19 @@ module {
         description:Text;
         error:?Text;
     };
+
+    public type TransferResponse = {
+        id:Nat32;
+        token:Token;
+        amount:Nat;
+        recipient:Text;
+        executed:Bool;
+        createdAt:Time.Time;
+        executedAt:?Time.Time;
+        description:Text;
+        error:?Text;
+    };
+
     public type Member = {
         id:Nat32;
         principal:Text;
@@ -47,11 +80,33 @@ module {
         executedAt:?Time.Time;
         error:?Text;
     };
+
+    public type MemberResponse = {
+        id:Nat32;
+        principal:Text;
+        power:Nat;
+        description:Text;
+        executed:Bool;
+        createdAt:Time.Time;
+        executedAt:?Time.Time;
+        error:?Text;
+    };
+
     public type Threshold = {
         id:Nat32;
         power:Nat;
         description:Text;
         approvals:TrieMap.TrieMap<Text, Nat>;
+        executed:Bool;
+        createdAt:Time.Time;
+        executedAt:?Time.Time;
+        error:?Text;
+    };
+
+    public type ThresholdResponse = {
+        id:Nat32;
+        power:Nat;
+        description:Text;
         executed:Bool;
         createdAt:Time.Time;
         executedAt:?Time.Time;
