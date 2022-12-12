@@ -14,12 +14,12 @@ module {
         await canister.approveRequest(id);
     };
 
-    public func createRequest(request : RequestDraft): async Nat32 {
-        await canister.createRequest(request);
+    public func createRequest(proposalId:Nat32,request : RequestDraft): async Nat32 {
+        await canister.createRequest(proposalId,request);
     };
 
     private let canister = actor(Constants.treasuryCanister) : actor { 
         approveRequest : shared (Nat32) -> async Result.Result<(), ErrorMessage>;
-        createRequest : shared (RequestDraft) -> async Nat32;
+        createRequest : shared (Nat32, RequestDraft) -> async Nat32;
     };
 }

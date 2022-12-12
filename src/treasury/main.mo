@@ -85,13 +85,13 @@ actor class Treasury() = this{
       }
   };
 
-  public shared({caller}) func createRequest(request : RequestDraft) : async Nat32 {
+  public shared({caller}) func createRequest(proposalId:Nat32,request : RequestDraft) : async Nat32 {
     ignore _topUp();
     let isMember = _isMember(caller);
     assert(isMember.value);
     var currentId = requestId;
     requestId := requestId + 1;
-    let _request = _createRequest(currentId, request, caller, isMember.power);
+    let _request = _createRequest(proposalId,currentId, request, caller, isMember.power);
     requests.put(currentId,_request);
     currentId;
   };
@@ -103,16 +103,16 @@ actor class Treasury() = this{
       results := Array.append(results,[_request]);
     };
     results;
-    
   };
 
-  private func _createRequest(id:Nat32, request : RequestDraft, caller:Principal, power:Nat) : Request {
+  private func _createRequest(proposalId:Nat32,id:Nat32, request : RequestDraft, caller:Principal, power:Nat) : Request {
     let approvals:TrieMap.TrieMap<Text, Nat> = TrieMap.TrieMap<Text,Nat>(Text.equal, Text.hash);
     approvals.put(Principal.toText(caller),power);
     switch(request){
       case(#transfer(value)){
           let result = {
             id = id;
+            proposalId = proposalId;
             token = value.token;
             amount = value.amount;
             recipient = value.recipient;
@@ -128,6 +128,7 @@ actor class Treasury() = this{
       case(#addMember(value)){
           let result = {
             id = id;
+            proposalId = proposalId;
             principal = value.principal;
             power = value.power;
             description = value.description;
@@ -142,6 +143,7 @@ actor class Treasury() = this{
       case(#removeMember(value)){
           let result = {
             id = id;
+            proposalId = proposalId;
             principal = value.principal;
             power = value.power;
             description = value.description;
@@ -156,6 +158,7 @@ actor class Treasury() = this{
       case(#threshold(value)){
          let result = {
             id = id;
+            proposalId = proposalId;
             power = value.power;
             description = value.description;
             approvals = approvals;
@@ -169,6 +172,7 @@ actor class Treasury() = this{
       case(#swapFor(value)){
          let result = {
             id = id;
+            proposalId = proposalId;
             token = value.token;
             amount = value.amount;
             recipient = value.recipient;
@@ -184,6 +188,7 @@ actor class Treasury() = this{
       case(#withdrawLiquidity(value)){
          let result = {
             id = id;
+            proposalId = proposalId;
             amount = value.amount;
             recipient = value.recipient;
             approvals = approvals;
@@ -198,6 +203,7 @@ actor class Treasury() = this{
       case(#addLiquidity(value)){
          let result = {
             id = id;
+            proposalId = proposalId;
             token = value.token;
             amount = value.amount;
             recipient = value.recipient;
@@ -438,30 +444,37 @@ actor class Treasury() = this{
   private func _approveRequest(request:Request,principal:Text,power:Nat): Request{
     switch(request ){
       case(#transfer(value)){
+        assert(value.executed == false);
         value.approvals.put(principal,power);
         #transfer(value);
       };
       case(#addMember(value)){
+        assert(value.executed == false);
         value.approvals.put(principal,power);
         #addMember(value);
       };
       case(#removeMember(value)){
+        assert(value.executed == false);
         value.approvals.put(principal,power);
         #removeMember(value);
       };
       case(#threshold(value)){
+        assert(value.executed == false);
         value.approvals.put(principal,power);
         #threshold(value);
       };
       case(#swapFor(value)){
+        assert(value.executed == false);
         value.approvals.put(principal,power);
         #swapFor(value);
       };
       case(#withdrawLiquidity(value)){
+        assert(value.executed == false);
         value.approvals.put(principal,power);
         #withdrawLiquidity(value);
       };
       case(#addLiquidity(value)){
+        assert(value.executed == false);
         value.approvals.put(principal,power);
         #addLiquidity(value);
       };
@@ -577,6 +590,7 @@ actor class Treasury() = this{
         case(#swapFor(value)){
           let result = {
             id = value.id;
+            proposalId = value.proposalId;
             token = value.token;
             amount = value.amount;
             recipient = value.recipient;
@@ -592,6 +606,7 @@ actor class Treasury() = this{
         case(#withdrawLiquidity(value)){
           let result = {
             id = value.id;
+            proposalId = value.proposalId;
             amount = value.amount;
             executed = value.executed;
             createdAt = value.createdAt;
@@ -604,6 +619,7 @@ actor class Treasury() = this{
         case(#addLiquidity(value)){
           let result = {
             id = value.id;
+            proposalId = value.proposalId;
             token = value.token;
             amount = value.amount;
             recipient = value.recipient;
@@ -619,6 +635,7 @@ actor class Treasury() = this{
         case(#transfer(value)){
           let result = {
             id = value.id;
+            proposalId = value.proposalId;
             token = value.token;
             amount = value.amount;
             recipient = value.recipient;
@@ -634,6 +651,7 @@ actor class Treasury() = this{
         case(#addMember(value)){
           let result = {
             id = value.id;
+            proposalId = value.proposalId;
             principal = value.principal;
             power = value.power;
             description = value.description;
@@ -647,6 +665,7 @@ actor class Treasury() = this{
         case(#removeMember(value)){
           let result = {
             id = value.id;
+            proposalId = value.proposalId;
             principal = value.principal;
             power = value.power;
             description = value.description;
@@ -660,6 +679,7 @@ actor class Treasury() = this{
         case(#threshold(value)){
           let result = {
             id = value.id;
+            proposalId = value.proposalId;
             power = value.power;
             description = value.description;
             executed = value.executed;

@@ -36,7 +36,7 @@ actor class Dao() = this {
   //private let executionTime:Int = 86400000000000 * 3;
   private let executionTime:Int = 0;
   private stable var proposal:?Proposal = null;
-  private stable var proposalCost:Nat = 100000000000;
+  private stable var _proposalCost:Nat = 100000000000;
 
   private type ErrorMessage = { #message : Text;};
   private type Proposal = Proposal.Proposal;
@@ -188,10 +188,10 @@ actor class Dao() = this {
   private func _createProposal(caller:Principal, request:ProposalRequest): async TokenService.TxReceipt {
     //verify the amount of tokens is approved
     ///ADD THIS BACK
-    /*let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
-    if(proposalCost > allowance){
+    let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
+    if(_proposalCost > allowance){
       return #Err(#InsufficientAllowance);
-    };*/
+    };
     //verify hash if upgrading wasm
     switch(request){
       case(#upgrade(obj)){
@@ -199,94 +199,70 @@ actor class Dao() = this {
         if(hash != obj.hash){
           return #Err(#Other("Invalid wasm. Wasm hash does not match source"));
         };
-
-        //tax tokens
-        ///ADD THIS BACK
-        //let receipt = await TokenService.chargeTax(caller,proposalCost);
+        ignore TokenService.chargeTax(caller,_proposalCost);
         let receipt = #Ok(1);
-        switch(receipt){
-          case(#Ok(value)){
-            //create proposal
-            let currentId = proposalId;
-            proposalId := proposalId+1;
-            let upgrade = {
-              id = currentId;
-              creator = Principal.toText(caller);
-              wasm = obj.wasm;
-              args = obj.args;
-              canister = obj.canister;
-              title = obj.title;
-              description = obj.description;
-              source = obj.source;
-              hash = obj.hash;
-              yay = 0;
-              nay = 0;
-              executed = false;
-              executedAt = null;
-              timeStamp = Time.now();
-            };
-            proposal := ?#upgrade(upgrade);
-            #Ok(Nat32.toNat(currentId));
-          };
-          case(#Err(value)){
-            #Err(value);
-          };
-        }
+        //create proposal
+        let currentId = proposalId;
+        proposalId := proposalId+1;
+        let upgrade = {
+          id = currentId;
+          creator = Principal.toText(caller);
+          wasm = obj.wasm;
+          args = obj.args;
+          canister = obj.canister;
+          title = obj.title;
+          description = obj.description;
+          source = obj.source;
+          hash = obj.hash;
+          yay = 0;
+          nay = 0;
+          executed = false;
+          executedAt = null;
+          timeStamp = Time.now();
+        };
+        proposal := ?#upgrade(upgrade);
+        #Ok(Nat32.toNat(currentId));
       };
       case(#treasury(obj)){
-        let receipt = await TokenService.chargeTax(caller,proposalCost);
-        switch(receipt){
-          case(#Ok(value)){
-            //create proposal
-            let currentId = proposalId;
-            proposalId := proposalId+1;
-            let treasury = {
-              id = currentId;
-              treasuryRequestId = obj.treasuryRequestId;
-              creator = Principal.toText(caller);
-              vote = obj.vote;
-              title = obj.title;
-              description = obj.description;
-              yay = 0;
-              nay = 0;
-              executed = false;
-              executedAt = null;
-              timeStamp = Time.now();
-            };
-            proposal := ?#treasury(treasury);
-            #Ok(Nat32.toNat(currentId));
-          };
-          case(#Err(value)){
-            #Err(value);
-          };
-        }
+        ignore TokenService.chargeTax(caller,_proposalCost);
+        //create proposal
+        let currentId = proposalId;
+        proposalId := proposalId+1;
+        let treasury = {
+          id = currentId;
+          treasuryRequestId = obj.treasuryRequestId;
+          creator = Principal.toText(caller);
+          vote = obj.vote;
+          title = obj.title;
+          description = obj.description;
+          yay = 0;
+          nay = 0;
+          executed = false;
+          executedAt = null;
+          timeStamp = Time.now();
+        };
+        proposal := ?#treasury(treasury);
+        #Ok(Nat32.toNat(currentId));
       };
       case(#treasuryAction(obj)){
-        let receipt = await TokenService.chargeTax(caller,proposalCost);
-        switch(receipt){
-          case(#Ok(value)){
-            //create proposal
-            let currentId = proposalId;
-            proposalId := proposalId+1;
-            let treasuryAction = {
-              id = currentId;
-              creator = Principal.toText(caller);
-              request = obj.request;
-              title = obj.title;
-              description = obj.description;
-              yay = 0;
-              nay = 0;
-              executed = false;
-              executedAt = null;
-              timeStamp = Time.now();
-            };
-            proposal := ?#treasuryAction(treasuryAction);
-            #Ok(Nat32.toNat(currentId));
-          };
-          case(#Err(value)){
-            #Err(value);
-          };
-        }
+        ignore TokenService.chargeTax(caller,_proposalCost);
+        //create proposal
+        let currentId = proposalId;
+        proposalId := proposalId+1;
+        let treasuryAction = {
+          id = currentId;
+          creator = Principal.toText(caller);
+          request = obj.request;
+          title = obj.title;
+          description = obj.description;
+          yay = 0;
+          nay = 0;
+          executed = false;
+          executedAt = null;
+          timeStamp = Time.now();
+        };
+        proposal := ?#treasuryAction(treasuryAction);
+        #Ok(Nat32.toNat(currentId));
       };
       case(#tax(obj)){
         #Err(#Unauthorized);
@@ -317,31 +293,24 @@ actor class Dao() = this {
         }*/
       };
       case(#proposalCost(obj)){
-        let receipt = await TokenService.chargeTax(caller,proposalCost);
-        switch(receipt){
-          case(#Ok(value)){
-            //create proposal
-            let currentId = proposalId;
-            proposalId := proposalId+1;
-            let proposalCost = {
-              id = currentId;
-              creator = Principal.toText(caller);
-              amount = obj.amount;
-              title = obj.title;
-              description = obj.description;
-              yay = 0;
-              nay = 0;
-              executed = false;
-              executedAt = null;
-              timeStamp = Time.now();
-            };
-            proposal := ?#proposalCost(proposalCost);
-            #Ok(Nat32.toNat(currentId));
-          };
-          case(#Err(value)){
-            #Err(value);
-          };
-        }
+        ignore TokenService.chargeTax(caller,_proposalCost);
+        //create proposal
+        let currentId = proposalId;
+        proposalId := proposalId+1;
+        let proposalCost = {
+          id = currentId;
+          creator = Principal.toText(caller);
+          amount = obj.amount;
+          title = obj.title;
+          description = obj.description;
+          yay = 0;
+          nay = 0;
+          executed = false;
+          executedAt = null;
+          timeStamp = Time.now();
+        };
+        proposal := ?#proposalCost(proposalCost);
+        #Ok(Nat32.toNat(currentId));
       }
     };
   };
@@ -606,7 +575,7 @@ actor class Dao() = this {
               accepted.put(value.id,#treasury(_proposal));
               //make call to treasury cansiter that should be blackedhole
               //Add This Back
-              //ignore TreasuryService.approveRequest(value.treasuryRequestId);
+              ignore TreasuryService.approveRequest(value.treasuryRequestId);
             }else {
               var _proposal = {
                 id = value.id;
@@ -641,7 +610,7 @@ actor class Dao() = this {
               };
               accepted.put(value.id,#treasuryAction(_proposal));
               //make call to treasury cansiter that should be blackedhole
-              ignore TreasuryService.createRequest(value.request);
+              ignore TreasuryService.createRequest(value.id,value.request);
             }else {
               var _proposal = {
                 id = value.id;
@@ -729,7 +698,7 @@ actor class Dao() = this {
               };
               accepted.put(value.id,#proposalCost(_proposal));
               //make call to update the taxes across the token and community cansiter that should be blackedhole
-              proposalCost := value.amount;
+              _proposalCost := value.amount;
             }else {
               var _proposal = {
                 id = value.id;
@@ -766,7 +735,7 @@ actor class Dao() = this {
         if (path.size() == 1) {
             switch (path[0]) {
                 case ("getProposal") return _proposalResponse();
-                case ("proposalCost") return _natResponse(proposalCost);
+                case ("proposalCost") return _natResponse(_proposalCost);
                 case ("fetchAcceptedProposals") return _fetchAcceptedProposalResponse();
                 case ("fetchRejectedProposals") return _fetchRejectedProposalResponse();
                 case ("getMemorySize") return _natResponse(_getMemorySize());

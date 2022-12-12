@@ -25,6 +25,7 @@ module {
 
     public type WithdrawLiquidity = {
         id:Nat32;
+        proposalId:Nat32;
         amount:Nat;
         approvals:TrieMap.TrieMap<Text, Nat>;
         executed:Bool;
@@ -36,6 +37,7 @@ module {
 
     public type WithdrawLiquidityResponse = {
         id:Nat32;
+        proposalId:Nat32;
         amount:Nat;
         executed:Bool;
         createdAt:Time.Time;
@@ -46,6 +48,7 @@ module {
 
     public type Transfer = {
         id:Nat32;
+        proposalId:Nat32;
         token:Token;
         amount:Nat;
         recipient:Text;
@@ -59,6 +62,7 @@ module {
 
     public type TransferResponse = {
         id:Nat32;
+        proposalId:Nat32;
         token:Token;
         amount:Nat;
         recipient:Text;
@@ -71,6 +75,7 @@ module {
 
     public type Member = {
         id:Nat32;
+        proposalId:Nat32;
         principal:Text;
         power:Nat;
         description:Text;
@@ -83,6 +88,7 @@ module {
 
     public type MemberResponse = {
         id:Nat32;
+        proposalId:Nat32;
         principal:Text;
         power:Nat;
         description:Text;
@@ -94,6 +100,7 @@ module {
 
     public type Threshold = {
         id:Nat32;
+        proposalId:Nat32;
         power:Nat;
         description:Text;
         approvals:TrieMap.TrieMap<Text, Nat>;
@@ -105,6 +112,7 @@ module {
 
     public type ThresholdResponse = {
         id:Nat32;
+        proposalId:Nat32;
         power:Nat;
         description:Text;
         executed:Bool;

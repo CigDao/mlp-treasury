@@ -225,12 +225,13 @@ module {
         };
 
         map.put("id", #Number(Nat32.toNat(value.id)));
+        map.put("proposalId", #Number(Nat32.toNat(value.proposalId)));
         map.put("amount", #Number(value.amount));
         map.put("recipient", #String(value.recipient));
         map.put("approvals", #Array(approvals));
         map.put("executed", #Boolean(value.executed));
         map.put("createdAt", #Number(value.createdAt));
-        map.put("description", #String(value.description));
+        map.put("description", #String(_toHex(value.description)));
 
         #Object(map);
     };
@@ -263,11 +264,12 @@ module {
         };
 
         map.put("id", #Number(Nat32.toNat(value.id)));
+        map.put("proposalId", #Number(Nat32.toNat(value.proposalId)));
         map.put("amount", #Number(value.amount));
         map.put("approvals", #Array(approvals));
         map.put("executed", #Boolean(value.executed));
         map.put("createdAt", #Number(value.createdAt));
-        map.put("description", #String(value.description));
+        map.put("description", #String(_toHex(value.description)));
 
         #Object(map);
     };
@@ -290,7 +292,7 @@ module {
 
         map.put("amount", #Number(value.amount));
         map.put("recipient", #String(value.recipient));
-        map.put("description", #String(value.description));
+        map.put("description", #String(_toHex(value.description)));
 
         #Object(map);
     };
@@ -303,7 +305,7 @@ module {
 
         map.put("amount", #Number(value.amount));
         map.put("recipient", #String(value.recipient));
-        map.put("description", #String(value.description));
+        map.put("description", #String(_toHex(value.description)));
 
         #Object(map);
     };
@@ -333,7 +335,6 @@ module {
 
         switch(value){
             case(#upgrade(value)){
-
                 let executedAt = value.executedAt;
                 switch(executedAt){
                     case(?executedAt){
@@ -362,7 +363,7 @@ module {
                 map.put("id", #Number(Nat32.toNat(value.id)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));
-                map.put("description", #String(value.description));
+                map.put("description", #String(_toHex(value.description)));
                 map.put("source", #String(value.source));
                 map.put("hash", #String(value.hash));
                 map.put("yay", #Number(value.yay));
@@ -385,7 +386,7 @@ module {
                 map.put("treasuryRequestId", #Number(Nat32.toNat(value.treasuryRequestId)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));
-                map.put("description", #String(value.description));
+                map.put("description", #String(_toHex(value.description)));
                 map.put("vote", #Boolean(value.vote));
                 map.put("yay", #Number(value.yay));
                 map.put("nay", #Number(value.nay));
@@ -437,7 +438,7 @@ module {
                 map.put("id", #Number(Nat32.toNat(value.id)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));
-                map.put("description", #String(value.description));
+                map.put("description", #String(_toHex(value.description)));
                 map.put("yay", #Number(value.yay));
                 map.put("nay", #Number(value.nay));
                 map.put("executed", #Boolean(value.executed));
@@ -457,7 +458,7 @@ module {
                 map.put("id", #Number(Nat32.toNat(value.id)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));
-                map.put("description", #String(value.description));
+                map.put("description", #String(_toHex(value.description)));
                 map.put("request", requestDraft);
                 map.put("yay", #Number(value.yay));
                 map.put("nay", #Number(value.nay));
@@ -478,7 +479,7 @@ module {
                 map.put("id", #Number(Nat32.toNat(value.id)));
                 map.put("creator", #String(value.creator));
                 map.put("title", #String(value.title));
-                map.put("description", #String(value.description));
+                map.put("description", #String(_toHex(value.description)));
                 map.put("amount", #Number(value.amount));
                 map.put("yay", #Number(value.yay));
                 map.put("nay", #Number(value.nay));
@@ -517,9 +518,10 @@ module {
         };
 
         map.put("id", #Number(Nat32.toNat(value.id)));
+        map.put("proposalId", #Number(Nat32.toNat(value.proposalId)));
         map.put("principal", #String(value.principal));
         map.put("power", #Number(value.power));
-        map.put("description", #String(value.description));
+        map.put("description", #String(_toHex(value.description)));
         map.put("approvals", #Array(approvals));
         map.put("executed", #Boolean(value.executed));
         map.put("createdAt", #Number(value.createdAt));
@@ -536,7 +538,7 @@ module {
 
         map.put("principal", #String(value.principal));
         map.put("power", #Number(value.power));
-        map.put("description", #String(value.description));
+        map.put("description", #String(_toHex(value.description)));
 
         #Object(map);
     };
@@ -569,8 +571,9 @@ module {
         };
 
         map.put("id", #Number(Nat32.toNat(value.id)));
+        map.put("proposalId", #Number(Nat32.toNat(value.proposalId)));
         map.put("power", #Number(value.power));
-        map.put("description", #String(value.description));
+        map.put("description", #String(_toHex(value.description)));
         map.put("approvals", #Array(approvals));
         map.put("executed", #Boolean(value.executed));
         map.put("createdAt", #Number(value.createdAt));
@@ -585,7 +588,7 @@ module {
             Text.hash,
         );
         map.put("power", #Number(value.power));
-        map.put("description", #String(value.description));
+        map.put("description", #String(_toHex(value.description)));
         #Object(map);
     };
 
@@ -736,6 +739,7 @@ module {
             case(#transfer(value)){
                 let result = {
                     id = value.id;
+                    proposalId = value.proposalId;
                     token = value.token;
                     amount = value.amount;
                     recipient = value.recipient;
@@ -751,6 +755,7 @@ module {
             case(#addMember(value)){
                 let result = {
                     id = value.id;
+                    proposalId = value.proposalId;
                     principal = value.principal;
                     power = value.power;
                     description = value.description;
@@ -765,6 +770,7 @@ module {
             case(#removeMember(value)){
                 let result = {
                     id = value.id;
+                    proposalId = value.proposalId;
                     principal = value.principal;
                     power = value.power;
                     description = value.description;
@@ -779,6 +785,7 @@ module {
             case(#threshold(value)){
                 let result = {
                     id = value.id;
+                    proposalId = value.proposalId;
                     power = value.power;
                     description = value.description;
                     approvals = value.approvals;
@@ -792,6 +799,7 @@ module {
             case(#swapFor(value)){
                 let result = {
                     id = value.id;
+                    proposalId = value.proposalId;
                     token = value.token;
                     amount = value.amount;
                     recipient = value.recipient;
@@ -807,6 +815,7 @@ module {
             case(#withdrawLiquidity(value)){
                 let result = {
                     id = value.id;
+                    proposalId = value.proposalId;
                     amount = value.amount;
                     approvals = value.approvals;
                     executed = executed;
@@ -820,6 +829,7 @@ module {
             case(#addLiquidity(value)){
                 let result = {
                     id = value.id;
+                    proposalId = value.proposalId;
                     token = value.token;
                     amount = value.amount;
                     recipient = value.recipient;
@@ -833,6 +843,10 @@ module {
                 #addLiquidity(result);
             };
         }
+    };
+
+    public func _toHex(value:Text): Text {
+        Hex.encode(Blob.toArray(Text.encodeUtf8(value)));
     };
 
     public func hash(blob: Blob): Text {
