@@ -91,7 +91,7 @@ actor class Controller() = this {
                                             throw(e)
                                         }
                                     };
-                                    case(#community) {
+                                    case(#taxCollector) {
                                         let canister = Principal.fromText(Constants.taxCollectorCanister);
                                         try {
                                             return await _upgrade(canister,value.wasm,value.args);

@@ -92,7 +92,7 @@ module {
         #dao;
         #controller;
         #treasury;
-        #community;
+        #taxCollector;
         #swap;
     };
 

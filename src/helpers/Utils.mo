@@ -355,8 +355,8 @@ module {
                     case(#treasury) {
                         map.put("canister", #String("Treasury"));
                     };
-                    case(#community) {
-                        map.put("canister", #String("Community"));
+                    case(#taxCollector) {
+                        map.put("canister", #String("taxCollector"));
                     };
                     case(#swap) {
                         map.put("canister", #String("Swap"));
