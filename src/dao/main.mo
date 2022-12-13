@@ -36,9 +36,10 @@ actor class Dao() = this {
   private stable var voteId:Nat32 = 1;
   private stable var totalTokensSpent:Nat = 0;
   //private let executionTime:Int = 86400000000000 * 3;
-  private let executionTime:Int = 0;
+  private let executionTime:Int = 60000000000;
+  //private let executionTime:Int = 0;
   private stable var proposal:?Proposal = null;
-  private stable var _proposalCost:Nat = 100000000000;
+  private stable var _proposalCost:Nat = 1000000000000000;
 
   private type ErrorMessage = { #message : Text;};
   private type Proposal = Proposal.Proposal;
@@ -49,9 +50,6 @@ actor class Dao() = this {
 
   private stable var proposalVoteEntries : [(Nat32,[Vote])] = [];
   private var proposalVotes = HashMap.fromIter<Nat32,[Vote]>(proposalVoteEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
-
-  /*private stable var proposalEntries : [(Nat32,Proposal)] = [];
-  private var proposals = HashMap.fromIter<Nat32,Proposal>(proposalEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});*/
 
   private stable var rejectedEntries : [(Nat32,Proposal)] = [];
   private var rejected = HashMap.fromIter<Nat32,Proposal>(rejectedEntries.vals(), 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
@@ -65,7 +63,6 @@ actor class Dao() = this {
   system func preupgrade() {
     proposalVoteEntries := Iter.toArray(proposalVotes.entries());
     voteEntries := Iter.toArray(votes.entries());
-    //proposalEntries := Iter.toArray(proposals.entries());
     rejectedEntries := Iter.toArray(rejected.entries());
     acceptedEntries := Iter.toArray(accepted.entries());
   };
@@ -73,7 +70,6 @@ actor class Dao() = this {
   system func postupgrade() {
     proposalVoteEntries := [];
     voteEntries := [];
-    //proposalEntries := [];
     rejectedEntries := [];
     acceptedEntries := [];
   };
@@ -94,6 +90,10 @@ actor class Dao() = this {
 
   public query func getProposal(): async ?Proposal {
       proposal;
+  };
+
+  public query func getProposalCost(): async Nat {
+      _proposalCost;
   };
 
   public query func fetchAcceptedProposals(): async [Proposal] {
@@ -211,7 +211,6 @@ actor class Dao() = this {
           return #Err(#Other("Invalid wasm. Wasm hash does not match source"));
         };
         ignore TokenService.chargeTax(caller,_proposalCost);
-        let receipt = #Ok(1);
         //create proposal
         let currentId = proposalId;
         proposalId := proposalId+1;
@@ -328,38 +327,32 @@ actor class Dao() = this {
 
   public shared({caller}) func vote(proposalId:Nat32, power:Nat, yay:Bool): async TokenService.TxReceipt {
     ignore _topUp();
+    let timer_active = await TimerService.timer_active();
+    assert(timer_active == true);
     assert(power > 0);
     //verify the amount of tokens is approved
     ///ADD THIS BACK
-    /*let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
+    let allowance = await TokenService.allowance(caller,Principal.fromActor(this));
     if(power > allowance){
       return #Err(#InsufficientAllowance);
-    };*/
+    };
     //tax tokens
     ///ADD THIS BACK
-    //let receipt = await TokenService.chargeTax(caller,power);
-    let receipt = #Ok(1);
-    switch(receipt){
-      case(#Ok(value)){
-        let vote = {
-          proposalId = proposalId;
-          yay = yay;
-          member = Principal.toText(caller);
-          power = power;
-          timeStamp = Time.now();
-        };
-        //credit vote
-        let currentId = voteId;
-        voteId := voteId+1;
-        votes.put(voteId,vote);
-        _vote(proposalId, power, yay);
-        _addVoteToProposal(proposalId, vote);
-        #Ok(Nat32.toNat(currentId));
-      };
-      case(#Err(value)){
-        #Err(value);
-      };
-    }
+    ignore TokenService.chargeTax(caller,power);
+    let vote = {
+      proposalId = proposalId;
+      yay = yay;
+      member = Principal.toText(caller);
+      power = power;
+      timeStamp = Time.now();
+    };
+    //credit vote
+    let currentId = voteId;
+    voteId := voteId+1;
+    votes.put(voteId,vote);
+    _vote(proposalId, power, yay);
+    _addVoteToProposal(proposalId, vote);
+    #Ok(Nat32.toNat(currentId));
   };
 
   private func _vote(proposalId:Nat32, power:Nat, yay:Bool) {

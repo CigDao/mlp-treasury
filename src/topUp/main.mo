@@ -46,6 +46,7 @@ actor class TopUp() = this{
         canister_list := Array.append(canister_list,[Constants.databaseCanister]);
         canister_list := Array.append(canister_list,[Constants.reflectionDatabaseCanister]);
         canister_list := Array.append(canister_list,[Constants.distributionCanister]);
+        canister_list := Array.append(canister_list,[Constants.timerCanister]);
 
         let partitions = await _fetchPartitions();
         canister_list := Array.append(canister_list,partitions);

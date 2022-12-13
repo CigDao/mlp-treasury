@@ -11,7 +11,7 @@ module {
         #treasury:Treasury;
         #treasuryAction:TreasuryAction;
         #tax:Tax;
-        #proposalCost:PropodalCost;
+        #proposalCost:ProposalCost;
     };
 
     public type ProposalRequest = {
@@ -19,7 +19,7 @@ module {
         #treasury:TreasuryRequest;
         #treasuryAction:TreasuryActionRequest;
         #tax:TaxRequest;
-        #proposalCost:PropodalCostRequest;
+        #proposalCost:ProposalCostRequest;
     };
 
     public type TaxType = {
@@ -37,7 +37,7 @@ module {
         description:Text;
     };
 
-    public type PropodalCostRequest = {
+    public type ProposalCostRequest = {
         amount:Nat;
         title:Text;
         description:Text;
@@ -56,7 +56,7 @@ module {
         timeStamp:Time.Time;
     };
 
-    public type PropodalCost = {
+    public type ProposalCost = {
         id:Nat32;
         creator:Text;
         amount:Nat;
@@ -90,7 +90,6 @@ module {
 
     public type Canister = {
         #dao;
-        #controller;
         #treasury;
         #taxCollector;
         #swap;

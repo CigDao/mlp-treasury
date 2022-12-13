@@ -28,9 +28,13 @@ module {
             }
         };
 
+        public func stopAndStartCanister(canisterId: Principal): async () {
+            await ic.stop_canister({ canister_id = canisterId });
+            await ic.start_canister({ canister_id = canisterId });
+        };
+
         public func updateSettings(canisterId: Principal, manager: Principal): async () {
             let controllers: ?[Principal] = ?[canisterId, manager];
-
             await ic.update_settings(({canister_id = canisterId; settings = {
                 controllers = controllers;
                 freezing_threshold = null;

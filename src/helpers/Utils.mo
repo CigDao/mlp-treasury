@@ -349,9 +349,6 @@ module {
                     case(#dao){
                         map.put("canister", #String("Dao"));
                     };
-                    case(#controller) {
-                        map.put("canister", #String("Controller"));
-                    };
                     case(#treasury) {
                         map.put("canister", #String("Treasury"));
                     };

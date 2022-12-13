@@ -68,6 +68,7 @@ actor class Controller() = this {
                                     case(#dao){
                                         let canister = Principal.fromText(Constants.daoCanister);
                                         try {
+                                            await  CansiterService.CanisterUtils().stopAndStartCanister(canister);
                                             return await _upgrade(canister,value.wasm,value.args);
                                         }
                                         catch e {
@@ -75,18 +76,10 @@ actor class Controller() = this {
                                         }
                                         
                                     };
-                                    case(#controller) {
-                                        /*let canister = Principal.fromText(Constants.controllerCanister);
-                                        try {
-                                            return await _upgrade(canister,value.wasm,value.args);
-                                        }
-                                        catch e {
-                                            throw(e)
-                                        }*/
-                                    };
                                     case(#treasury) {
                                         let canister = Principal.fromText(Constants.treasuryCanister);
                                         try {
+                                            await  CansiterService.CanisterUtils().stopAndStartCanister(canister);
                                             return await _upgrade(canister,value.wasm,value.args);
                                         }
                                         catch e {
@@ -94,9 +87,13 @@ actor class Controller() = this {
                                         }
                                     };
                                     case(#taxCollector) {
-                                        let canister = Principal.fromText(Constants.taxCollectorCanister);
+                                        let taxCollectorCanister = Principal.fromText(Constants.taxCollectorCanister);
+                                        let dipCanister = Principal.fromText(Constants.dip20Canister);
+
                                         try {
-                                            return await _upgrade(canister,value.wasm,value.args);
+                                            await  CansiterService.CanisterUtils().stopAndStartCanister(dipCanister);
+                                            await  CansiterService.CanisterUtils().stopAndStartCanister(taxCollectorCanister);
+                                            return await _upgrade(taxCollectorCanister,value.wasm,value.args);
                                         }
                                         catch e {
                                             throw(e)
@@ -105,6 +102,7 @@ actor class Controller() = this {
                                     case(#swap) {
                                         let canister = Principal.fromText(Constants.swapCanister);
                                         try {
+                                            await  CansiterService.CanisterUtils().stopAndStartCanister(canister);
                                             return await _upgrade(canister,value.wasm,value.args);
                                         }
                                         catch e {

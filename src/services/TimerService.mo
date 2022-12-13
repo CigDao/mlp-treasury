@@ -8,7 +8,12 @@ module {
         await canister.start_proposal_timer(time);
     };
 
+    public func timer_active(): async Bool {
+        await canister.timer_active();
+    };
+
     private let canister = actor(Constants.timerCanister) : actor { 
         start_proposal_timer : shared (Nat64) -> async ();
+        timer_active: query() -> async Bool;
     };
 }

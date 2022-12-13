@@ -51,6 +51,14 @@ actor class Treasury() = this{
     memberEntries := [];
   };
 
+  public query func fetchMembers(): async [(Principal,Nat)] {
+      Iter.toArray(members.entries());
+  };
+
+  public query func getThreshold(): async Nat {
+      threshold
+  };
+
   public query func getMemorySize(): async Nat {
       let size = Prim.rts_memory_size();
       size;
