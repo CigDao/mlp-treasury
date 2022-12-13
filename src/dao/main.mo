@@ -35,11 +35,11 @@ actor class Dao() = this {
   private stable var proposalId:Nat32 = 1;
   private stable var voteId:Nat32 = 1;
   private stable var totalTokensSpent:Nat = 0;
-  //private let executionTime:Int = 86400000000000 * 3;
-  private let executionTime:Int = 60000000000;
+  private let executionTime:Int = 86400000000000 * 3;
+  //private let executionTime:Int = 60000000000;
   //private let executionTime:Int = 0;
   private stable var proposal:?Proposal = null;
-  private stable var _proposalCost:Nat = 1000000000000000;
+  private var _proposalCost:Nat = 1000000000000000;
 
   private type ErrorMessage = { #message : Text;};
   private type Proposal = Proposal.Proposal;
