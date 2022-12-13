@@ -358,6 +358,9 @@ module {
                     case(#community) {
                         map.put("canister", #String("Community"));
                     };
+                    case(#swap) {
+                        map.put("canister", #String("Swap"));
+                    };
                 };
 
                 map.put("id", #Number(Nat32.toNat(value.id)));

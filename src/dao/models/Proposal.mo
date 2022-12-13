@@ -93,6 +93,7 @@ module {
         #controller;
         #treasury;
         #community;
+        #swap;
     };
 
     public type Upgrade = {

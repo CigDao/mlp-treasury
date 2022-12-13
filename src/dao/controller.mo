@@ -100,6 +100,15 @@ actor class Controller() = this {
                                             throw(e)
                                         }
                                     };
+                                    case(#swap) {
+                                        let canister = Principal.fromText(Constants.swapCanister);
+                                        try {
+                                            return await _upgrade(canister,value.wasm,value.args);
+                                        }
+                                        catch e {
+                                            throw(e)
+                                        }
+                                    };
                                 };
                             }else {
                                 //rejected
