@@ -9,6 +9,7 @@ module {
     public let reflectionDatabaseCanister = "xa3um-eqaaa-aaaap-aaoyq-cai";
     public let distributionCanister = "cjzlc-riaaa-aaaal-qbgwa-cai";
     public let topUpCanister = "wifml-jyaaa-aaaal-qbjma-cai";
+    public let timerCanister = "xbpw4-biaaa-aaaal-abq6a-cai";
 
     public let cyclesThreshold = 20000000000000;
 

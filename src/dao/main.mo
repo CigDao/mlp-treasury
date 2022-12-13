@@ -5,6 +5,7 @@ import Float "mo:base/Float";
 import Nat "mo:base/Nat";
 import Int "mo:base/Int";
 import Nat32 "mo:base/Nat32";
+import Nat64 "mo:base/Nat64";
 import Array "mo:base/Array";
 import HashMap "mo:base/HashMap";
 import TrieMap "mo:base/TrieMap";
@@ -27,6 +28,7 @@ import CansiterService "../services/CansiterService";
 import TreasuryService "../services/TreasuryService";
 import ControllerService "../services/ControllerService";
 import TopUpService "../services/TopUpService";
+import TimerService "../services/TimerService";
 
 actor class Dao() = this {
 
@@ -180,7 +182,16 @@ actor class Dao() = this {
         #Err(#ActiveProposal);
       };
       case(null){
-        await _createProposal(caller, request);
+        let result = await _createProposal(caller, request);
+        switch(result){
+          case(#Ok(value)){
+            ignore TimerService.start_proposal_timer(Nat64.fromIntWrap(executionTime));
+            #Ok(value)
+          };
+          case(#Err(value)){
+            #Err(value)
+          };
+        };
       }
     }
   };

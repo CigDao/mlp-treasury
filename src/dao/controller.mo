@@ -49,7 +49,9 @@ actor class Controller() = this {
       }
     };
     
-    public func testExecute(): async () {
+    public shared ({caller}) func execute(): async () {
+        let timerCanister = Principal.fromText(Constants.timerCanister);
+        assert(timerCanister == caller);
         ignore _topUp();
         let exist = await DaoService.getProposal();
         let executionTime  = await DaoService.getExecutionTime();
