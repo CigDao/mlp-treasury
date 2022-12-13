@@ -244,6 +244,7 @@ actor class Treasury() = this{
         if(result){
           switch(request){
             case(#transfer(value)){
+                assert(value.executed == false);
                 let result = await _transfer(value);
                 switch(result){
                   case(#ok(value)){
@@ -260,24 +261,28 @@ actor class Treasury() = this{
                 return #ok();
             };
             case(#addMember(value)){
+                assert(value.executed == false);
                 _addMember(value);
                 let _request = Utils.updateRequest(request,true,null);
                 requests.put(id,_request);
                 return #ok()
             };
             case(#removeMember(value)){
+                assert(value.executed == false);
                 _removeMember(value);
                 let _request = Utils.updateRequest(request,true,null);
                 requests.put(id,_request);
                 return #ok()
             };
             case(#threshold(value)){
+                assert(value.executed == false);
                 _setThreshold(value);
                 let _request = Utils.updateRequest(request,true,null);
                 requests.put(id,_request);
                 return #ok()
             };
             case(#swapFor(value)){
+                assert(value.executed == false);
                 let result = await _swapFor(value);
                 switch(result){
                   case(#Ok(value)){
@@ -294,6 +299,7 @@ actor class Treasury() = this{
                 };
             };
             case(#withdrawLiquidity(value)){
+                assert(value.executed == false);
                 let result = await _withdrawLiquidity(value);
                 switch(result){
                   case(#Ok(value)){
@@ -310,6 +316,7 @@ actor class Treasury() = this{
                 };
             };
             case(#addLiquidity(value)){
+                assert(value.executed == false);
                 let result = await _addLiquidity(value);
                 switch(result){
                   case(#Ok(value)){
