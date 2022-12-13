@@ -381,14 +381,47 @@ actor class Treasury() = this{
   };
 
   private func _addLiquidity(value : Transfer): async SwapService.TxReceipt {
+   let swapCanister = Principal.fromText(Constants.swapCanister);
    switch(value.token){
       case(#yc){
         let estimate = await SwapService.canister.getEquivalentToken2Estimate(value.amount);
-        let provide = await SwapService.canister.provide(value.amount,estimate);
+        let approveYC = await TokenService.approve(swapCanister,value.amount);
+        switch(approveYC){
+          case(#Ok(_)){
+            let approveWICP = await WICPService.canister.approve(swapCanister,estimate);
+            switch(approveWICP){
+              case(#Ok(_)){
+                await SwapService.canister.provide(value.amount,estimate);
+              };
+              case(#Err(value)){
+                #Err(#InsufficientAllowance);
+              };
+            };
+          };
+          case(#Err(value)){
+            #Err(#InsufficientAllowance);
+          };
+        };
       };
       case(#icp){
         let estimate = await SwapService.canister.getEquivalentToken1Estimate(value.amount);
-        let provide = await SwapService.canister.provide(estimate,value.amount);
+        let approveYC = await TokenService.approve(swapCanister,estimate);
+        switch(approveYC){
+          case(#Ok(_)){
+            let approveWICP = await WICPService.canister.approve(swapCanister,value.amount);
+            switch(approveWICP){
+              case(#Ok(_)){
+                await SwapService.canister.provide(estimate,value.amount);
+              };
+              case(#Err(value)){
+                #Err(#InsufficientAllowance);
+              };
+            };
+          };
+          case(#Err(value)){
+            #Err(#InsufficientAllowance);
+          };
+        };
       }
     };
   };
@@ -554,7 +587,6 @@ actor class Treasury() = this{
 
   public query func http_request(request : Http.Request) : async Http.Response {
         let path = Iter.toArray(Text.tokens(request.url, #text("/")));
-
         if (path.size() == 1) {
             switch (path[0]) {
                 case ("fetchRequests") return _fetchRequestsResponse();
