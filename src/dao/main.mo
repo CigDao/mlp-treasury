@@ -327,7 +327,7 @@ actor class Dao() = this {
   public shared({caller}) func vote(proposalId:Nat32, power:Nat, yay:Bool): async TokenService.TxReceipt {
     ignore _topUp();
     let timer_active = await TimerService.timer_active();
-    assert(timer_active == true);
+    assert(timer_active > 0);
     assert(power > 0);
     //verify the amount of tokens is approved
     ///ADD THIS BACK
