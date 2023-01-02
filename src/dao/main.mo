@@ -133,8 +133,7 @@ actor class Dao() = this {
     let exist = proposal;
     let now = Time.now();
     let controller = Principal.fromText(Constants.controllerCanister);
-    if(caller != controller){
-    };
+    assert(caller == controller);
     switch(exist){
       case(?exist){
         switch(exist){
