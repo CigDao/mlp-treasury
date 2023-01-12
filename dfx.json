@@ -1,23 +1,7 @@
 {
   "canisters": {
-    "dao": {
-      "main": "src/dao/main.mo",
-      "type": "motoko"
-    },
     "treasury": {
       "main": "src/treasury/main.mo",
-      "type": "motoko"
-    },
-    "controller": {
-      "main": "src/dao/controller.mo",
-      "type": "motoko"
-    },
-    "distribution": {
-      "main": "src/distribution/main.mo",
-      "type": "motoko"
-    },
-    "topUp": {
-      "main": "src/topUp/main.mo",
       "type": "motoko"
     }
   },
@@ -26,7 +10,6 @@
       "args": ""
     }
   },
-  "dfx": "0.12.1",
   "networks": {
     "local": {
       "bind": "127.0.0.1:8000",
