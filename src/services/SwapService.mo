@@ -20,17 +20,31 @@ module {
         };
     };
 
-    public let canister = actor(Constants.swapCanister) : actor { 
-        provide : (Nat, Nat) -> async TxReceipt;
-        withdraw : (Nat) -> async TxReceipt;
-        getWithdrawEstimate: (Nat) -> async {share1:Nat;share2:Nat};
-        swapToken1: (Nat,Nat) -> async TxReceipt;
-        getSwapToken1Estimate: (Nat) -> async Nat;
-        getSwapToken1EstimateGivenToken2: (Nat) -> async TxReceipt;
-        swapToken2: (Nat, Nat) -> async TxReceipt;
-        getSwapToken2Estimate: (Nat) -> async Nat;
-        getSwapToken2EstimateGivenToken1: (Nat) -> async TxReceipt;
-        getEquivalentToken1Estimate: (Nat) -> async Nat;
-        getEquivalentToken2Estimate: (Nat) -> async Nat;
+    public func canister(canister:Text): actor { 
+            provide : (Nat, Nat) -> async TxReceipt;
+            withdraw : (Nat) -> async TxReceipt;
+            getWithdrawEstimate: (Nat) -> async {share1:Nat;share2:Nat};
+            swapToken1: (Nat,Nat) -> async TxReceipt;
+            getSwapToken1Estimate: (Nat) -> async Nat;
+            getSwapToken1EstimateGivenToken2: (Nat) -> async TxReceipt;
+            swapToken2: (Nat, Nat) -> async TxReceipt;
+            getSwapToken2Estimate: (Nat) -> async Nat;
+            getSwapToken2EstimateGivenToken1: (Nat) -> async TxReceipt;
+            getEquivalentToken1Estimate: (Nat) -> async Nat;
+            getEquivalentToken2Estimate: (Nat) -> async Nat;
+        } {
+        return actor(canister) : actor { 
+            provide : (Nat, Nat) -> async TxReceipt;
+            withdraw : (Nat) -> async TxReceipt;
+            getWithdrawEstimate: (Nat) -> async {share1:Nat;share2:Nat};
+            swapToken1: (Nat,Nat) -> async TxReceipt;
+            getSwapToken1Estimate: (Nat) -> async Nat;
+            getSwapToken1EstimateGivenToken2: (Nat) -> async TxReceipt;
+            swapToken2: (Nat, Nat) -> async TxReceipt;
+            getSwapToken2Estimate: (Nat) -> async Nat;
+            getSwapToken2EstimateGivenToken1: (Nat) -> async TxReceipt;
+            getEquivalentToken1Estimate: (Nat) -> async Nat;
+            getEquivalentToken2Estimate: (Nat) -> async Nat;
+        };
     };
 }

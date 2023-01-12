@@ -15,8 +15,6 @@ import Int32 "mo:base/Int32";
 import Nat32 "mo:base/Nat32";
 import JSON "JSON";
 import Request "../treasury/models/Request";
-import Proposal "../dao/models/Proposal";
-import Vote "../dao/models/Vote";
 import SHA "./SHA";
 import Blob "mo:base/Blob";
 import Time "mo:base/Time";
@@ -35,14 +33,12 @@ module {
     private type RequestDraft = Request.RequestDraft;
     private type Transfer = Request.Transfer;
     private type WithdrawLiquidity = Request.WithdrawLiquidity;
-    private type Proposal = Proposal.Proposal;
     private type Member = Request.Member;
     private type Threshold = Request.Threshold;
     private type TransferDraft = Request.TransferDraft;
     private type MemberDraft = Request.MemberDraft;
     private type WithdrawLiquidityDraft = Request.WithdrawLiquidityDraft;
     private type ThresholdDraft = Request.ThresholdDraft;
-    private type Vote = Vote.Vote;
 
     public func natToFloat(value:Nat): Float {
         return Float.fromInt(value)
@@ -210,8 +206,8 @@ module {
             case(#icp){
                 map.put("token", #String("ICP"));
             };
-            case(#yc){
-                map.put("token", #String("YC"));
+            case(#token){
+                map.put("token", #String("Token"));
             };
         };
 
@@ -285,8 +281,8 @@ module {
             case(#icp){
                 map.put("token", #String("ICP"));
             };
-            case(#yc){
-                map.put("token", #String("YC"));
+            case(#token){
+                map.put("token", #String("Token"));
             };
         };
 
@@ -307,186 +303,6 @@ module {
         map.put("recipient", #String(value.recipient));
         map.put("description", #String(_toHex(value.description)));
 
-        #Object(map);
-    };
-
-    public func _voteToJson(value: Vote): JSON {
-        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
-            0,
-            Text.equal,
-            Text.hash,
-        );
-        map.put("proposalId", #Number(Nat32.toNat(value.proposalId)));
-        map.put("yay", #Boolean(value.yay));
-        map.put("member", #String(value.member));
-        map.put("power", #Number(value.power));
-        map.put("timeStamp", #Number(value.timeStamp));
-
-        #Object(map);
-        
-    };
-
-    public func _proposalToJson(value: Proposal): JSON {
-        let map : HashMap.HashMap<Text, JSON> = HashMap.HashMap<Text, JSON>(
-            0,
-            Text.equal,
-            Text.hash,
-        );
-
-        switch(value){
-            case(#upgrade(value)){
-                let executedAt = value.executedAt;
-                switch(executedAt){
-                    case(?executedAt){
-                        map.put("executedAt", #Number(executedAt));
-                    };
-                    case(null) {
-
-                    };
-                };
-
-                switch(value.canister){
-                    case(#dao){
-                        map.put("canister", #String("Dao"));
-                    };
-                    case(#treasury) {
-                        map.put("canister", #String("Treasury"));
-                    };
-                    case(#taxCollector) {
-                        map.put("canister", #String("taxCollector"));
-                    };
-                    case(#swap) {
-                        map.put("canister", #String("Swap"));
-                    };
-                };
-
-                map.put("id", #Number(Nat32.toNat(value.id)));
-                map.put("creator", #String(value.creator));
-                map.put("title", #String(value.title));
-                map.put("description", #String(_toHex(value.description)));
-                map.put("source", #String(value.source));
-                map.put("hash", #String(value.hash));
-                map.put("yay", #Number(value.yay));
-                map.put("nay", #Number(value.nay));
-                map.put("executed", #Boolean(value.executed));
-                map.put("timeStamp", #Number(value.timeStamp))
-            };
-            case(#treasury(value)){
-
-                let executedAt = value.executedAt;
-                switch(executedAt){
-                    case(?executedAt){
-                        map.put("executedAt", #Number(executedAt));
-                    };
-                    case(null) {
-
-                    };
-                };
-                map.put("id", #Number(Nat32.toNat(value.id)));
-                map.put("treasuryRequestId", #Number(Nat32.toNat(value.treasuryRequestId)));
-                map.put("creator", #String(value.creator));
-                map.put("title", #String(value.title));
-                map.put("description", #String(_toHex(value.description)));
-                map.put("vote", #Boolean(value.vote));
-                map.put("yay", #Number(value.yay));
-                map.put("nay", #Number(value.nay));
-                map.put("executed", #Boolean(value.executed));
-                map.put("timeStamp", #Number(value.timeStamp))
-            };
-            case(#tax(value)){
-                let executedAt = value.executedAt;
-                switch(executedAt){
-                    case(?executedAt){
-                        map.put("executedAt", #Number(executedAt));
-                    };
-                    case(null) {
-
-                    };
-                };
-
-                switch(value.taxType){
-                    case(#transaction(amount)){
-                        map.put("type", #String("transaction"));
-                        map.put("amount", #String(Float.toText(amount)));
-                    };
-
-                    case(#burn(amount)) {
-                        map.put("type", #String("burn"));
-                        map.put("amount", #String(Float.toText(amount)));
-                    };
-
-                    case(#reflection(amount)) {
-                        map.put("type", #String("reflection"));
-                        map.put("amount", #String(Float.toText(amount)));
-                    };
-
-                    case(#treasury(amount)) {
-                        map.put("type", #String("treasury"));
-                        map.put("amount", #String(Float.toText(amount)));
-                    };
-
-                    case(#marketing(amount)) {
-                        map.put("type", #String("marketing"));
-                        map.put("amount", #String(Float.toText(amount)));
-                    };
-
-                    case(#maxHolding(amount)) {
-                        map.put("type", #String("maxHolding"));
-                        map.put("amount", #String(Float.toText(amount)));
-                    };
-                };
-                map.put("id", #Number(Nat32.toNat(value.id)));
-                map.put("creator", #String(value.creator));
-                map.put("title", #String(value.title));
-                map.put("description", #String(_toHex(value.description)));
-                map.put("yay", #Number(value.yay));
-                map.put("nay", #Number(value.nay));
-                map.put("executed", #Boolean(value.executed));
-                map.put("timeStamp", #Number(value.timeStamp))
-            };
-            case(#treasuryAction(value)){
-                let requestDraft = requestDraftToJson(value.request);
-                let executedAt = value.executedAt;
-                switch(executedAt){
-                    case(?executedAt){
-                        map.put("executedAt", #Number(executedAt));
-                    };
-                    case(null) {
-
-                    };
-                };
-                map.put("id", #Number(Nat32.toNat(value.id)));
-                map.put("creator", #String(value.creator));
-                map.put("title", #String(value.title));
-                map.put("description", #String(_toHex(value.description)));
-                map.put("request", requestDraft);
-                map.put("yay", #Number(value.yay));
-                map.put("nay", #Number(value.nay));
-                map.put("executed", #Boolean(value.executed));
-                map.put("timeStamp", #Number(value.timeStamp))
-            };
-            case(#proposalCost(value)){
-               
-                let executedAt = value.executedAt;
-                switch(executedAt){
-                    case(?executedAt){
-                        map.put("executedAt", #Number(executedAt));
-                    };
-                    case(null) {
-
-                    };
-                };
-                map.put("id", #Number(Nat32.toNat(value.id)));
-                map.put("creator", #String(value.creator));
-                map.put("title", #String(value.title));
-                map.put("description", #String(_toHex(value.description)));
-                map.put("amount", #Number(value.amount));
-                map.put("yay", #Number(value.yay));
-                map.put("nay", #Number(value.nay));
-                map.put("executed", #Boolean(value.executed));
-                map.put("timeStamp", #Number(value.timeStamp))
-            };
-        };
         #Object(map);
     };
 

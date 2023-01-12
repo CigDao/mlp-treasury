@@ -22,11 +22,14 @@ import Constants "../Constants";
 import TopUpService "../services/TopUpService";
 import SwapService "../services/SwapService";
 
-actor class Treasury() = this{
+actor class Treasury(owner:Text,token:Text,swap:Text,topupCanister:Text) = this{
 
   stable var requestId:Nat32 = 1;
   stable var threshold:Nat = 1;
-  stable var owner = Principal.fromText(Constants.daoCanister);
+  stable var _owner = Principal.fromText(owner);
+  stable var _token = token;
+  stable var _swap = swap;
+  stable var _topupCanister = topupCanister;
 
   private type ErrorMessage = { #message : Text;};
   private type Request = Request.Request;
@@ -42,7 +45,7 @@ actor class Treasury() = this{
   private var requests = HashMap.HashMap<Nat32,Request>( 0, Nat32.equal, func (a : Nat32) : Nat32 {a});
   private stable var memberEntries : [(Principal,Nat)] = [];
   private var members = HashMap.fromIter<Principal,Nat>(memberEntries.vals(), 0, Principal.equal, Principal.hash);
-  members.put(owner,1);
+  members.put(_owner,1);
   system func preupgrade() {
     memberEntries := Iter.toArray(members.entries());
   };
@@ -89,7 +92,7 @@ actor class Treasury() = this{
 
   private func _topUp(): async () {
       if (_getCycles() <= Constants.cyclesThreshold){
-          await TopUpService.topUp();
+          await TopUpService.topUp(_topupCanister);
       }
   };
 
@@ -353,15 +356,15 @@ actor class Treasury() = this{
   };
 
   private func _swapFor(value : Transfer): async SwapService.TxReceipt {
-    let swapCanister = Principal.fromText(Constants.swapCanister);
+    let swapCanister = Principal.fromText(_swap);
     switch(value.token){
-      case(#yc){
-        let estimate = await SwapService.canister.getSwapToken2EstimateGivenToken1(value.amount);
+      case(#token){
+        let estimate = await SwapService.canister(_swap).getSwapToken2EstimateGivenToken1(value.amount);
         switch(estimate){
           case(#Ok(amount)){
             let slippage = Utils.floatToNat(Utils.natToFloat(value.amount) - (Utils.natToFloat(value.amount) * 0.01));
             let approve = await WICPService.canister.approve(swapCanister,amount);
-            let swap = await SwapService.canister.swapToken2(amount,slippage)
+            let swap = await SwapService.canister(_swap).swapToken2(amount,slippage)
           };
           case(#Err(value)){
             #Err(value)
@@ -369,12 +372,12 @@ actor class Treasury() = this{
         };
       };
       case(#icp){
-        let estimate = await SwapService.canister.getSwapToken1EstimateGivenToken2(value.amount);
+        let estimate = await SwapService.canister(_swap).getSwapToken1EstimateGivenToken2(value.amount);
         switch(estimate){
           case(#Ok(amount)){
             let slippage = Utils.floatToNat(Utils.natToFloat(value.amount) - (Utils.natToFloat(value.amount) * 0.01));
-            let approve = await TokenService.approve(swapCanister,amount);
-            let swap = await SwapService.canister.swapToken1(amount,slippage);
+            let approve = await TokenService.approve(swapCanister,amount,_token);
+            let swap = await SwapService.canister(_swap).swapToken1(amount,slippage);
           };
           case(#Err(value)){
             #Err(value)
@@ -385,21 +388,21 @@ actor class Treasury() = this{
   };
 
   private func _withdrawLiquidity(value : WithdrawLiquidity): async SwapService.TxReceipt {
-    await SwapService.canister.withdraw(value.amount);
+    await SwapService.canister(_swap).withdraw(value.amount);
   };
 
   private func _addLiquidity(value : Transfer): async SwapService.TxReceipt {
-   let swapCanister = Principal.fromText(Constants.swapCanister);
+   let swapCanister = Principal.fromText(_swap);
    switch(value.token){
-      case(#yc){
-        let estimate = await SwapService.canister.getEquivalentToken2Estimate(value.amount);
-        let approveYC = await TokenService.approve(swapCanister,value.amount);
+      case(#token){
+        let estimate = await SwapService.canister(_swap).getEquivalentToken2Estimate(value.amount);
+        let approveYC = await TokenService.approve(swapCanister,value.amount,_token);
         switch(approveYC){
           case(#Ok(_)){
             let approveWICP = await WICPService.canister.approve(swapCanister,estimate);
             switch(approveWICP){
               case(#Ok(_)){
-                await SwapService.canister.provide(value.amount,estimate);
+                await SwapService.canister(_swap).provide(value.amount,estimate);
               };
               case(#Err(value)){
                 #Err(#InsufficientAllowance);
@@ -412,14 +415,14 @@ actor class Treasury() = this{
         };
       };
       case(#icp){
-        let estimate = await SwapService.canister.getEquivalentToken1Estimate(value.amount);
-        let approveYC = await TokenService.approve(swapCanister,estimate);
+        let estimate = await SwapService.canister(_swap).getEquivalentToken1Estimate(value.amount);
+        let approveYC = await TokenService.approve(swapCanister,estimate,_token);
         switch(approveYC){
           case(#Ok(_)){
             let approveWICP = await WICPService.canister.approve(swapCanister,value.amount);
             switch(approveWICP){
               case(#Ok(_)){
-                await SwapService.canister.provide(estimate,value.amount);
+                await SwapService.canister(_swap).provide(estimate,value.amount);
               };
               case(#Err(value)){
                 #Err(#InsufficientAllowance);
@@ -454,8 +457,8 @@ actor class Treasury() = this{
 
   private func _transfer(transfer : Transfer): async Result.Result<(),Text> {
     switch(transfer.token){
-      case(#yc){
-        let result = await TokenService.transfer(Principal.fromText(transfer.recipient),transfer.amount);
+      case(#token){
+        let result = await TokenService.transfer(Principal.fromText(transfer.recipient),transfer.amount,_token);
         switch(result){
           case(#Ok(value)){
             #ok();

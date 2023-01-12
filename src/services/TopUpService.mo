@@ -7,12 +7,10 @@ import Request "../treasury/models/Request";
 
 module {
 
-    public func topUp(): async () {
+    public func topUp(canisterId:Text): async () {
+        let canister = actor(canisterId) : actor { 
+            topUp : shared () -> async ();
+        };
         await canister.topUp();
-    };
-
-    private let canister = actor(Constants.topUpCanister) : actor { 
-        topUp : shared () -> async ();
-    };
-    
+    };    
 }
