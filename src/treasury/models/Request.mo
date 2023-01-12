@@ -155,7 +155,7 @@ module {
     };
 
     public type Token = {
-        #yc;
+        #token;
         #icp;
     };
 }
